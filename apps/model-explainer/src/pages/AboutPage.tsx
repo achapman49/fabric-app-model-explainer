@@ -95,7 +95,7 @@ export function AboutPage() {
         </ul>
         {mode === 'demo' && <p className="m-0 mt-3 text-muted">Demo mode: the three models are fictional and answered by a built-in mock engine, so nothing leaves this browser.</p>}
       </Block>
-      <p className="mt-2 text-xs text-muted">Built by Datachain Consulting for AI @Work. Runs on Microsoft Fabric Apps (preview).</p>
+      <p className="mt-2 text-xs text-muted">Built by Datachain Consulting for AI @Work. Runs on Microsoft Fabric Apps.</p>
     </div>
   );
 }

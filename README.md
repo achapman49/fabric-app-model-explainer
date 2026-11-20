@@ -49,7 +49,7 @@ Demo video (about 2 minutes, AI-generated narration, captions burned in): [demo/
 
 ## 1. Prerequisites
 
-- Microsoft Fabric with the **Fabric Apps** workload enabled (preview) and a workspace on a Fabric capacity.
+- Microsoft Fabric with the **Fabric Apps** workload enabled and a workspace on a Fabric capacity.
 - **Edit** permission (Contributor or higher) on that workspace to deploy.
 - Tenant setting **Semantic Model Execute Queries REST API** enabled (Admin portal, Integration settings). The connector
   uses it under the signed-in user.

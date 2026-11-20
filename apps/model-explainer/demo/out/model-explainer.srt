@@ -1,119 +1,119 @@
 1
-00:00:03,202 --> 00:00:07,305
+00:00:03,207 --> 00:00:07,310
 This is Semantic Model Explainer, a Fabric App that draws
 
 2
-00:00:07,305 --> 00:00:10,472
+00:00:07,310 --> 00:00:10,477
 a Power BI semantic model as a solar system.
 
 3
-00:00:10,922 --> 00:00:15,089
+00:00:10,927 --> 00:00:15,094
 Fact tables are stars, dimensions are planets, measures are
 
 4
-00:00:15,089 --> 00:00:18,902
+00:00:15,094 --> 00:00:18,907
 moons, and every relationship is a trail between them.
 
 5
-00:00:20,202 --> 00:00:23,911
+00:00:20,113 --> 00:00:23,822
 The first lens is space weather: health findings show as
 
 6
-00:00:23,911 --> 00:00:27,952
+00:00:23,822 --> 00:00:27,863
 flares on the tables, measures and relationships they affect.
 
 7
-00:00:28,751 --> 00:00:31,823
+00:00:28,664 --> 00:00:31,736
 Today ranks what to fix first, and one click flies
 
 8
-00:00:31,823 --> 00:00:35,141
+00:00:31,736 --> 00:00:35,054
 the camera to the relationship that filters both ways.
 
 9
-00:00:35,591 --> 00:00:39,341
+00:00:35,504 --> 00:00:39,254
 The next item switches to the coverage lens: green moons
 
 10
-00:00:39,341 --> 00:00:43,091
+00:00:39,254 --> 00:00:43,004
 are described and formatted, amber and red ones are not.
 
 11
-00:00:43,892 --> 00:00:46,956
+00:00:43,811 --> 00:00:46,875
 The size lens counts rows with one batched query,
 
 12
-00:00:46,956 --> 00:00:49,832
+00:00:46,875 --> 00:00:49,751
 so the biggest tables are the biggest planets.
 
 13
-00:00:50,632 --> 00:00:53,687
+00:00:50,551 --> 00:00:53,606
 View as report author removes the hidden tables and
 
 14
-00:00:53,687 --> 00:00:57,342
+00:00:53,606 --> 00:00:57,261
 measures, which is what people building reports actually see.
 
 15
-00:00:59,165 --> 00:01:02,294
+00:00:59,040 --> 00:01:02,169
 Fly to any table or measure by name; the
 
 16
-00:01:02,294 --> 00:01:06,205
+00:01:02,169 --> 00:01:06,080
 card shows its description, format string and DAX.
 
 17
-00:01:07,011 --> 00:01:10,443
+00:01:06,914 --> 00:01:10,346
 The field guide lists every table and measure, with
 
 18
-00:01:10,443 --> 00:01:13,471
+00:01:10,346 --> 00:01:13,374
 the DAX highlighted and one click to copy it.
 
 19
-00:01:13,921 --> 00:01:17,218
+00:01:13,824 --> 00:01:17,121
 Filter for the measures nobody has described yet, or
 
 20
-00:01:17,218 --> 00:01:19,881
+00:01:17,121 --> 00:01:19,784
 open a table and count its rows on demand.
 
 21
-00:01:20,688 --> 00:01:24,850
+00:01:20,593 --> 00:01:24,755
 Space weather shows the eight rules and the score, with the
 
 22
-00:01:24,850 --> 00:01:28,448
+00:01:24,755 --> 00:01:28,353
 arithmetic on the page: 100 minus 40 minus 8 is 52.
 
 23
-00:01:29,252 --> 00:01:33,522
+00:01:29,159 --> 00:01:33,429
 A forty-three table model becomes four star systems and a belt of
 
 24
-00:01:33,522 --> 00:01:38,252
+00:01:33,429 --> 00:01:38,159
 loose tables, and a shared dimension sits between the stars it connects.
 
 25
-00:01:40,540 --> 00:01:45,607
+00:01:40,383 --> 00:01:45,450
 The star chart draws the same relationships flat, with arrows for filter
 
 26
-00:01:45,607 --> 00:01:49,760
+00:01:45,450 --> 00:01:49,603
 direction, and it is the fallback when 3D is not available.
 
 27
-00:01:50,577 --> 00:01:53,193
+00:01:50,413 --> 00:01:53,029
 The mission brief prints on one page, map
 
 28
-00:01:53,193 --> 00:01:55,937
+00:01:53,029 --> 00:01:55,773
 included, or copies as Markdown for a wiki.
 
 29
-00:01:57,017 --> 00:01:59,575
+00:01:56,788 --> 00:01:59,346
 Open a model, look at the sky, and you know
 
 30
-00:01:59,575 --> 00:02:01,717
+00:01:59,346 --> 00:02:01,488
 what is in it and what to fix first.
