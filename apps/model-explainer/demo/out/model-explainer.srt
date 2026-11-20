@@ -1,0 +1,119 @@
+1
+00:00:03,202 --> 00:00:07,305
+This is Semantic Model Explainer, a Fabric App that draws
+
+2
+00:00:07,305 --> 00:00:10,472
+a Power BI semantic model as a solar system.
+
+3
+00:00:10,922 --> 00:00:15,089
+Fact tables are stars, dimensions are planets, measures are
+
+4
+00:00:15,089 --> 00:00:18,902
+moons, and every relationship is a trail between them.
+
+5
+00:00:20,202 --> 00:00:23,911
+The first lens is space weather: health findings show as
+
+6
+00:00:23,911 --> 00:00:27,952
+flares on the tables, measures and relationships they affect.
+
+7
+00:00:28,751 --> 00:00:31,823
+Today ranks what to fix first, and one click flies
+
+8
+00:00:31,823 --> 00:00:35,141
+the camera to the relationship that filters both ways.
+
+9
+00:00:35,591 --> 00:00:39,341
+The next item switches to the coverage lens: green moons
+
+10
+00:00:39,341 --> 00:00:43,091
+are described and formatted, amber and red ones are not.
+
+11
+00:00:43,892 --> 00:00:46,956
+The size lens counts rows with one batched query,
+
+12
+00:00:46,956 --> 00:00:49,832
+so the biggest tables are the biggest planets.
+
+13
+00:00:50,632 --> 00:00:53,687
+View as report author removes the hidden tables and
+
+14
+00:00:53,687 --> 00:00:57,342
+measures, which is what people building reports actually see.
+
+15
+00:00:59,165 --> 00:01:02,294
+Fly to any table or measure by name; the
+
+16
+00:01:02,294 --> 00:01:06,205
+card shows its description, format string and DAX.
+
+17
+00:01:07,011 --> 00:01:10,443
+The field guide lists every table and measure, with
+
+18
+00:01:10,443 --> 00:01:13,471
+the DAX highlighted and one click to copy it.
+
+19
+00:01:13,921 --> 00:01:17,218
+Filter for the measures nobody has described yet, or
+
+20
+00:01:17,218 --> 00:01:19,881
+open a table and count its rows on demand.
+
+21
+00:01:20,688 --> 00:01:24,850
+Space weather shows the eight rules and the score, with the
+
+22
+00:01:24,850 --> 00:01:28,448
+arithmetic on the page: 100 minus 40 minus 8 is 52.
+
+23
+00:01:29,252 --> 00:01:33,522
+A forty-three table model becomes four star systems and a belt of
+
+24
+00:01:33,522 --> 00:01:38,252
+loose tables, and a shared dimension sits between the stars it connects.
+
+25
+00:01:40,540 --> 00:01:45,607
+The star chart draws the same relationships flat, with arrows for filter
+
+26
+00:01:45,607 --> 00:01:49,760
+direction, and it is the fallback when 3D is not available.
+
+27
+00:01:50,577 --> 00:01:53,193
+The mission brief prints on one page, map
+
+28
+00:01:53,193 --> 00:01:55,937
+included, or copies as Markdown for a wiki.
+
+29
+00:01:57,017 --> 00:01:59,575
+Open a model, look at the sky, and you know
+
+30
+00:01:59,575 --> 00:02:01,717
+what is in it and what to fix first.

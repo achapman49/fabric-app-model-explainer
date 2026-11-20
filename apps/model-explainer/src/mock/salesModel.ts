@@ -1,0 +1,290 @@
+/**
+ * Fictional "Sample Sales Model". Built so that EVERY health rule fires once:
+ * - measures without a description: 6 of 13 visible measures (46%) have none
+ * - tables without a description: dim_Promo_TBL
+ * - measures without a format string: Gross Margin, Order Count, Avg Order Value, TOTAL_DISCOUNT, Target Gap, _Base Sales
+ * - bidirectional: Sales -> Customer
+ * - many-to-many: Manager's Targets -> Store (on Region)
+ * - inactive: Sales[Ship Date] -> Date[Date]
+ * - unfriendly names: dim_Promo_TBL, PROMO_NAME, PROMO_TYPE, Discount_Pct, TOTAL_DISCOUNT
+ * - wide table: Store Survey (42 columns)
+ * Hand calculation: 4 warnings, 4 info -> 100 - 40 - 8 = 52.
+ * Names with spaces, an apostrophe (Manager's Targets, Manager's Name) and brackets (Size [cm], Sales [Prior Year]).
+ */
+import type { MockModel } from './spec';
+
+const months = ['Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026', 'Sep 2026', 'Oct 2026', 'Nov 2026', 'Dec 2025'];
+const regions = ['North', 'South', 'East', 'West', 'Central'];
+
+const surveyColumns = Array.from({ length: 41 }, (_, i) => ({
+  name: `Q${String(i + 1).padStart(2, '0')} Score`,
+  dataType: 'Integer' as const,
+  folder: 'Survey answers',
+}));
+
+export const salesModel: MockModel = {
+  key: 'sales',
+  label: 'Sample Sales Model',
+  note: 'Fictional retail model with one example of every health finding.',
+  tables: [
+    {
+      name: 'Sales',
+      description: 'One row per order line, loaded nightly from the order system.',
+      storageMode: 'Import',
+      rows: 1_284_512,
+      columns: [
+        { name: 'Order Number', dataType: 'Text', description: 'Order identifier shown on receipts.' },
+        { name: 'Order Date', dataType: 'DateTime', isHidden: true },
+        { name: 'Ship Date', dataType: 'DateTime', isHidden: true },
+        { name: 'Product Key', dataType: 'Integer', isHidden: true },
+        { name: 'Customer Key', dataType: 'Integer', isHidden: true },
+        { name: 'Store Key', dataType: 'Integer', isHidden: true },
+        { name: 'Promo Key', dataType: 'Integer', isHidden: true },
+        { name: 'Channel', dataType: 'Text', samples: ['Online', 'In store', 'Partner', 'Phone'] },
+        { name: 'Quantity', dataType: 'Integer' },
+        { name: 'Unit Price', dataType: 'Currency', formatString: '\\$#,0.00' },
+        { name: 'Sales Amount', dataType: 'Currency', formatString: '\\$#,0.00' },
+        { name: 'Cost Amount', dataType: 'Currency', formatString: '\\$#,0.00' },
+        { name: 'Line Margin', dataType: 'Currency', calculated: true, formatString: '\\$#,0.00' },
+      ],
+    },
+    {
+      name: 'Product',
+      description: 'One row per product in the current catalogue.',
+      storageMode: 'Import',
+      rows: 1_842,
+      columns: [
+        { name: 'Product Key', dataType: 'Integer', isHidden: true },
+        { name: 'Category', dataType: 'Text', samples: ['Bikes', 'Accessories', 'Clothing', 'Components'] },
+        { name: 'Subcategory', dataType: 'Text', samples: ['Mountain Bikes', 'Road Bikes', 'Helmets', 'Gloves', 'Jerseys', 'Tyres', 'Lights', 'Locks', 'Saddles', 'Pedals'] },
+        { name: 'Product Name', dataType: 'Text', samples: ['Trail 500', 'City Cruiser', 'Aero Helmet', 'Grip Gloves', 'Night Light Pro', 'Road Racer 9', 'Comfort Saddle', 'Steel Lock', 'Rain Jacket', 'Tubeless Tyre 29'] },
+        { name: 'Color', dataType: 'Text', samples: ['Black', 'Red', 'Blue', 'Silver', 'Green', 'White'] },
+        { name: 'Size [cm]', dataType: 'Text', samples: ['48', '52', '54', '56', '58', '60'] },
+        { name: 'List Price', dataType: 'Currency' },
+      ],
+    },
+    {
+      name: 'Customer',
+      description: 'One row per customer account.',
+      storageMode: 'Import',
+      rows: 48_210,
+      columns: [
+        { name: 'Customer Key', dataType: 'Integer', isHidden: true },
+        { name: 'Segment', dataType: 'Text', samples: ['Consumer', 'Small business', 'Enterprise', 'Education'] },
+        { name: 'City', dataType: 'Text', samples: ['Riverside', 'Lakeview', 'Hillcrest', 'Eastport', 'Westfield', 'Northgate', 'Bayside', 'Oakridge'] },
+        { name: 'Country', dataType: 'Text', samples: ['Australia', 'New Zealand', 'Singapore', 'Japan', 'Canada'] },
+        { name: 'Customer Since', dataType: 'DateTime' },
+      ],
+    },
+    {
+      name: 'Date',
+      description: 'Calendar table, one row per day from 2022 to 2027.',
+      storageMode: 'Import',
+      rows: 2_191,
+      columns: [
+        { name: 'Date', dataType: 'DateTime' },
+        { name: 'Month', dataType: 'Text', samples: months },
+        { name: 'Quarter', dataType: 'Text', samples: ['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026', 'Q4 2025'] },
+        { name: 'Year', dataType: 'Integer' },
+        { name: 'Month Number', dataType: 'Integer', isHidden: true },
+      ],
+    },
+    {
+      name: 'Store',
+      description: 'Physical and online stores.',
+      storageMode: 'Import',
+      rows: 64,
+      columns: [
+        { name: 'Store Key', dataType: 'Integer', isHidden: true },
+        { name: 'Store Name', dataType: 'Text', samples: ['Riverside', 'Harbour Front', 'Hillcrest Mall', 'Online Store', 'Eastport', 'Westfield Plaza', 'Old Town', 'Airport'] },
+        { name: 'Region', dataType: 'Text', samples: regions },
+        { name: "Manager's Name", dataType: 'Text', samples: ['Priya N.', 'Tom B.', 'Lena K.', 'Marco D.', 'Aisha R.', 'Ken W.'] },
+        { name: 'Opened', dataType: 'DateTime' },
+      ],
+    },
+    {
+      name: 'dim_Promo_TBL',
+      storageMode: 'Import',
+      rows: 18,
+      columns: [
+        { name: 'Promo Key', dataType: 'Integer', isHidden: true },
+        { name: 'PROMO_NAME', dataType: 'Text', samples: ['Spring Sale', 'Clearance', 'Loyalty Week', 'No promotion', 'Back to School', 'Bundle Deal'] },
+        { name: 'PROMO_TYPE', dataType: 'Text', samples: ['Seasonal', 'Discount', 'Loyalty', 'None'] },
+        { name: 'Discount_Pct', dataType: 'Number' },
+      ],
+    },
+    {
+      name: "Manager's Targets",
+      description: 'Monthly sales targets per region, entered by regional managers.',
+      storageMode: 'Import',
+      rows: 60,
+      columns: [
+        { name: 'Region', dataType: 'Text', samples: regions },
+        { name: 'Target Month', dataType: 'Text', samples: months },
+        { name: 'Target Amount', dataType: 'Currency' },
+        { name: 'Entered By', dataType: 'Text', samples: ['Priya N.', 'Tom B.', 'Lena K.', 'Marco D.', 'Aisha R.'] },
+      ],
+    },
+    {
+      name: 'Store Survey',
+      description: 'Quarterly customer survey per store: one column per question.',
+      storageMode: 'Import',
+      rows: 512,
+      columns: [{ name: 'Store Key', dataType: 'Integer', isHidden: true }, ...surveyColumns],
+    },
+    {
+      name: 'Currency Rates',
+      isHidden: true,
+      storageMode: 'Import',
+      rows: 3_650,
+      columns: [
+        { name: 'Currency Code', dataType: 'Text' },
+        { name: 'Rate', dataType: 'Number' },
+        { name: 'Rate Date', dataType: 'DateTime' },
+      ],
+    },
+  ],
+  measures: [
+    {
+      table: 'Sales',
+      name: 'Total Sales',
+      expression: "SUM ( 'Sales'[Sales Amount] )",
+      formatString: '\\$#,0',
+      description: 'Revenue after discounts, before tax.',
+      folder: 'Sales',
+      dataType: 'Currency',
+      range: [180_000, 2_400_000],
+    },
+    {
+      table: 'Sales',
+      name: 'Sales [Prior Year]',
+      expression: "CALCULATE ( [Total Sales], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )",
+      formatString: '\\$#,0',
+      folder: 'Time intelligence',
+      dataType: 'Currency',
+      range: [150_000, 2_100_000],
+    },
+    {
+      table: "Manager's Targets",
+      name: 'Target Amount',
+      expression: "SUM ( 'Manager''s Targets'[Target Amount] )",
+      formatString: '\\$#,0',
+      description: 'Sum of the monthly targets for the regions in context.',
+      folder: 'Targets',
+      dataType: 'Currency',
+      range: [200_000, 2_000_000],
+    },
+    {
+      table: 'Sales',
+      name: 'Gross Margin',
+      expression: '[Total Sales] - [Total Cost]',
+      formatString: '',
+      folder: 'Profit',
+      dataType: 'Currency',
+      range: [40_000, 900_000],
+    },
+    {
+      table: 'Sales',
+      name: 'Margin %',
+      expression: 'DIVIDE ( [Gross Margin], [Total Sales] )',
+      formatString: '0.0%',
+      description: 'Gross margin as a share of sales.',
+      folder: 'Profit',
+      dataType: 'Number',
+      range: [0.18, 0.46],
+    },
+    {
+      table: 'Sales',
+      name: 'Order Count',
+      expression: "DISTINCTCOUNT ( 'Sales'[Order Number] )",
+      formatString: '',
+      folder: 'Sales',
+      dataType: 'Integer',
+      range: [900, 24_000],
+    },
+    {
+      table: 'Sales',
+      name: 'Total Cost',
+      expression: "SUM ( 'Sales'[Cost Amount] )",
+      formatString: '\\$#,0',
+      folder: 'Profit',
+      dataType: 'Currency',
+      range: [120_000, 1_600_000],
+    },
+    {
+      table: 'Sales',
+      name: 'Units Sold',
+      expression: "SUM ( 'Sales'[Quantity] )",
+      formatString: '#,0',
+      description: 'Number of items sold.',
+      folder: 'Sales',
+      dataType: 'Integer',
+      range: [2_000, 60_000],
+    },
+    {
+      table: 'Sales',
+      name: 'Avg Order Value',
+      expression: 'DIVIDE ( [Total Sales], [Order Count] )',
+      formatString: '',
+      description: 'Average revenue per order.',
+      folder: 'Sales',
+      dataType: 'Currency',
+      range: [60, 240],
+    },
+    {
+      table: 'Sales',
+      name: 'Sales Label',
+      expression: 'FORMAT ( [Total Sales], "\\$#,0" ) & " sold"',
+      formatString: '',
+      description: 'Text label for card visuals.',
+      folder: 'Labels',
+      dataType: 'Text',
+    },
+    {
+      table: 'Sales',
+      name: 'TOTAL_DISCOUNT',
+      expression: "SUMX ( 'Sales', 'Sales'[Quantity] * 'Sales'[Unit Price] * RELATED ( 'dim_Promo_TBL'[Discount_Pct] ) )",
+      formatString: '',
+      dataType: 'Currency',
+      range: [5_000, 120_000],
+    },
+    {
+      table: "Manager's Targets",
+      name: 'Sales vs Target',
+      expression: 'DIVIDE ( [Total Sales], [Target Amount] )',
+      formatString: '0%',
+      folder: 'Targets',
+      dataType: 'Number',
+      range: [0.7, 1.3],
+    },
+    {
+      table: "Manager's Targets",
+      name: 'Target Gap',
+      expression: null,
+      formatString: '',
+      description: 'Sales minus target. Defined in a calculation group, so its DAX is not exposed here.',
+      folder: 'Targets',
+      dataType: 'Currency',
+      range: [-150_000, 300_000],
+    },
+    {
+      table: 'Sales',
+      name: '_Base Sales',
+      expression: "SUM ( 'Sales'[Sales Amount] )",
+      formatString: '',
+      isHidden: true,
+      dataType: 'Currency',
+      range: [180_000, 2_400_000],
+    },
+  ],
+  relationships: [
+    { from: ['Sales', 'Product Key'], to: ['Product', 'Product Key'] },
+    { from: ['Sales', 'Customer Key'], to: ['Customer', 'Customer Key'], crossFilter: 'BothDirections' },
+    { from: ['Sales', 'Order Date'], to: ['Date', 'Date'] },
+    { from: ['Sales', 'Ship Date'], to: ['Date', 'Date'], isActive: false },
+    { from: ['Sales', 'Store Key'], to: ['Store', 'Store Key'] },
+    { from: ['Sales', 'Promo Key'], to: ['dim_Promo_TBL', 'Promo Key'] },
+    { from: ["Manager's Targets", 'Region'], to: ['Store', 'Region'], fromCardinality: 'Many', toCardinality: 'Many' },
+    { from: ['Store Survey', 'Store Key'], to: ['Store', 'Store Key'] },
+  ],
+};

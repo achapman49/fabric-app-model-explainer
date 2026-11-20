@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+@import '@x10/shared/styles.css';
+@source "../../../shared/src";
+
+/* ------------------------------------------------------------------ orrery labels (positioned by the scene) */
+
+.orrery-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 7px 3px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--world-ink);
+  font: 500 12px/15px var(--font-sans, inherit);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  text-shadow:
+    0 0 2px var(--world-sky),
+    0 0 6px var(--world-sky),
+    0 0 10px var(--world-sky);
+  transition:
+    background-color 120ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 160ms cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+}
+.orrery-label-cap {
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 12px;
+  letter-spacing: 0.02em;
+  color: var(--world-ink-muted);
+}
+.orrery-label-cap:empty {
+  display: none;
+}
+.orrery-label[data-kind='sun'] {
+  font-weight: 650;
+  font-size: 13px;
+}
+.orrery-label[data-kind='moon'] {
+  font-size: 11px;
+  font-weight: 450;
+  color: var(--world-ink-muted);
+}
+.orrery-label[data-dim] {
+  opacity: 0.45;
+}
+.orrery-label:hover,
+.orrery-label[data-hot] {
+  background: var(--glass-strong);
+  text-shadow: none;
+  box-shadow: 0 0 0 1px var(--glass-line);
+}
+.orrery-label[data-focus] {
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+  text-shadow: none;
+  opacity: 1;
+}
+.orrery-label[data-focus] .orrery-label-cap {
+  color: color-mix(in oklab, var(--accent-contrast) 75%, transparent);
+}
+.orrery-label:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ star chart */
+
+.x-starchart {
+  background: radial-gradient(ellipse 110% 85% at 42% 38%, color-mix(in oklab, var(--accent-3) 50%, var(--world-sky)) 0%, var(--world-sky) 70%);
+}
+
+/* ------------------------------------------------------------------ mission brief print */
+
+@media print {
+  #main {
+    max-width: none;
+    padding: 0;
+  }
+  .x-onepager {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .x-dax {
+    background: #f4f4f4 !important;
+    border-color: #ddd !important;
+  }
+}
