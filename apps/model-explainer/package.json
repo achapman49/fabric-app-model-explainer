@@ -29,12 +29,10 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.1",
-    "recharts": "^2.15.1",
-    "three": "^0.187.0"
+    "recharts": "^2.15.1"
   },
   "devDependencies": {
     "@microsoft/rayfin-cli": "^2.0.0",
-    "@microsoft/rayfin-guide": "^2.0.0",
-    "@types/three": "^0.187.0"
+    "@microsoft/rayfin-guide": "^2.0.0"
   }
 }
