@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Fail if tracked files contain tokens, publishable keys, connection strings or tenant/workspace GUIDs.
+// Fail if tracked files contain tokens, publishable keys, connection strings, tenant/workspace GUIDs or app hosting URLs.
 // Allowed: the all-zero placeholder GUID and the fixed persona ids used by demo seeds.
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -14,6 +14,8 @@ const rules = [
   { name: 'connection string', re: /(Password|Pwd)=[^;\s]+/i },
   { name: 'Azure storage key', re: /AccountKey=[A-Za-z0-9+/=]{20,}/ },
   { name: 'GUID (tenant/workspace/item id?)', re: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i },
+  // rayfin up writes each deployment's hosting origin into rayfin.yml; keep your app's address out of the repo.
+  { name: 'Fabric app hosting URL', re: /\b[a-z0-9-]+\.webapp\.(fabricapps\.net|rayfin[a-z0-9]*\.com)\b/i },
 ];
 const allowedGuid = (g) => /^0{8}-0{4}-[0-9]0{3}-[0-9]0{3}-\d{12}$/.test(g) || g === '00000000-0000-0000-0000-000000000000';
 
