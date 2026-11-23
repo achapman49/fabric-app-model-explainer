@@ -155,7 +155,16 @@ npx playwright test                    # smoke and acceptance at 390 px and 1280
 
 ## 3. Deploy
 
-The connector's model ids are not in the repo: `rayfin/rayfin.yml` reads them from the environment at `rayfin up`.
+Nothing that identifies your tenant, workspace, model or deployed app goes in the repo. The deploy reads them from
+git-ignored local files:
+
+| File (under `apps/model-explainer/`) | Holds | Written by |
+|---|---|---|
+| `rayfin/.env` | `MODEL_WORKSPACE_ID`, `MODEL_ITEM_ID` (the semantic model to explain) | you, once |
+| `.env.fabric.local` | `VITE_MODEL_LABEL` (the model's name in the picker) | you, once |
+| `rayfin/.deployments.json`, `rayfin/.env` (public values), `.env.local` | item id, API URL, publishable key | `rayfin up` |
+
+`rayfin/rayfin.yml` refers to the model only through variables:
 
 ```yaml
 connectors:
@@ -166,25 +175,47 @@ connectors:
       itemId: ${MODEL_ITEM_ID}             # the semantic model's item id
 ```
 
-Deploy with both variables set (Git Bash / macOS / Linux):
+1. Sign in: `npx rayfin login` (opens a browser; the token stays in your OS keychain).
+2. Find the model: `npx rayfin connector search --all-workspaces --type fabric-semanticmodel` lists the models you
+   can reach with their workspace and item ids (they are also in the model's portal URL,
+   `.../groups/<workspace-id>/datasets/<item-id>`).
+3. Create the two local files:
 
-```bash
-cd apps/model-explainer
-MODEL_WORKSPACE_ID=<model-workspace-id> MODEL_ITEM_ID=<model-item-id> npx rayfin up --workspace-id <app-workspace-id>
-```
+   ```bash
+   # apps/model-explainer/rayfin/.env
+   MODEL_WORKSPACE_ID=<model-workspace-id>
+   MODEL_ITEM_ID=<model-item-id>
 
-PowerShell: `$env:MODEL_WORKSPACE_ID='<model-workspace-id>'; $env:MODEL_ITEM_ID='<model-item-id>'; npx rayfin up --workspace-id <app-workspace-id>`.
+   # apps/model-explainer/.env.fabric.local
+   VITE_MODEL_LABEL=<name shown in the model picker>
+   ```
 
-Or from the repo root, with the helper that sets them for you:
+4. Deploy, previewing first if you like:
 
-```bash
-node tools/deploy-app.mjs model-explainer --workspace-id <app-workspace-id> --model-workspace-id <model-workspace-id> --model-item-id <model-item-id>
-```
+   ```bash
+   cd apps/model-explainer
+   npx rayfin up -n --workspace "<app workspace name>"     # dry run: resolves the workspace, changes nothing
+   npx rayfin up --workspace "<app workspace name>" --item-name model-explainer
+   npx rayfin up status                                     # health check
+   ```
 
-The ids are in the model's URL in the Fabric portal: `.../groups/<workspace-id>/datasets/<item-id>`. The app and the
-model can live in different workspaces. `rayfin up` builds with `npm run build:fabric`, uploads `dist/` to Fabric static
-hosting and applies the connector configuration. The data service is disabled (`services.data.enabled: false`), so no
-SQL database is created.
+   `rayfin up` builds with `npm run build:fabric`, uploads `dist/` to Fabric static hosting, applies the connector and
+   prints the live URL. The data service is disabled (`services.data.enabled: false`), so no SQL database is created.
+   The app and the model can live in different workspaces. It warns that `.env.fabric` is a legacy file; that file is
+   the app's Vite mode file, not deployment data, so the warning can be ignored.
+
+5. Keep the live URL out of git. `rayfin up` appends your app's hosting origin to `allowedRedirectUris` in
+   `rayfin.yml` and registers it with the backend at the same time. Every deploy re-adds it, so drop the line locally
+   instead of committing it:
+
+   ```bash
+   git checkout -- apps/model-explainer/rayfin/rayfin.yml
+   npm run check:secrets      # from the repo root: fails on GUIDs, keys, tokens or a hosting URL in tracked files
+   ```
+
+Run `npm run check:secrets` before every push. To deploy with an Azure CLI token instead of `rayfin login`,
+`node tools/deploy-app.mjs model-explainer --workspace-id <app-workspace-id> --model-workspace-id <id> --model-item-id <id>`
+does the same with the ids passed as arguments.
 
 ### Binding more models (up to 3)
 
@@ -195,9 +226,8 @@ SQL database is created.
    committed.
 3. Add one line to `src/config/models.ts`: `<name>: 'Label shown in the picker',`. The connector configs and runtimes
    are derived from that map in `src/config/fabric.ts`.
-4. Deploy with every variable set, for example
-   `MODEL_WORKSPACE_ID=… MODEL_ITEM_ID=… MODEL2_WORKSPACE_ID=… MODEL2_ITEM_ID=… npx rayfin up --workspace-id <app-workspace-id>`
-   (`tools/deploy-app.mjs` only sets the first pair; export the others in the shell first).
+4. Add the new variables to `rayfin/.env` (`MODEL2_WORKSPACE_ID=…`, `MODEL2_ITEM_ID=…`), give the label a variable
+   too if you want its name out of the repo, and deploy as above.
 
 ## 4. Seed
 
