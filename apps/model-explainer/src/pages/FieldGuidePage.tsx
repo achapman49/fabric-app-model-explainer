@@ -1,10 +1,10 @@
 /**
- * Field guide: every table (body) and measure (moon) in the model, with their columns, row counts on demand and the
+ * Tables & measures: every table and measure in the model, with their columns, row counts on demand and the
  * DAX, highlighted.
  */
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Orbit, Scale } from 'lucide-react';
+import { BookOpen, Network, Scale } from 'lucide-react';
 
 import {
   Badge,
@@ -26,17 +26,16 @@ import {
   Tr,
 } from '@x10/shared/ui';
 
-import { BodyGlyph } from '../components/BodyGlyph';
 import { HiddenChip, Mono, SectionUnavailable, ToolHeader, WithMetadata } from '../components/common';
 import { Dax } from '../components/Dax';
+import { RoleMark, StatusDot } from '../components/RoleMark';
 import { RULES } from '../config/rules';
 import { countRowsQuery } from '../domain/dax';
 import { EXPRESSIONS_HIDDEN_NOTE, expressionsHidden, isNumericMeasure } from '../domain/metadata';
-import { buildOrrery, kindShort, measureId, tableId, type Orrery } from '../domain/orrery';
+import { COVERAGE_LABEL, measureCoverage } from '../domain/issues';
+import { compactNumber, measureId, ROLE_LABEL, tableId, tableRoles, type TableRole } from '../domain/model';
 import { countRows, type Outcome } from '../domain/queries';
 import type { ColumnInfo, MeasureInfo, ModelMetadata, TableInfo } from '../domain/types';
-import { COVERAGE_LABEL, measureCoverage } from '../domain/weather';
-import { compactNumber } from '../orrery/look';
 import { useModel } from '../state/ModelContext';
 
 const KIND_LABEL: Record<ColumnInfo['kind'], string> = {
@@ -56,7 +55,7 @@ function FieldGuide({ meta }: { meta: ModelMetadata }) {
   const [params, setParams] = useSearchParams();
   const tab: Tab = params.get('tab') === 'measures' ? 'measures' : 'tables';
   const open = params.get('table');
-  const orrery = useMemo(() => buildOrrery(meta), [meta]);
+  const roles = useMemo(() => tableRoles(meta), [meta]);
   const set = (patch: Record<string, string | null>) =>
     setParams(
       (p) => {
@@ -69,7 +68,7 @@ function FieldGuide({ meta }: { meta: ModelMetadata }) {
   const table = meta.tables.find((t) => t.name === open) ?? null;
   return (
     <>
-      <ToolHeader icon={<BookOpen />} tool="Field guide" title={tab === 'tables' ? 'Tables' : 'Measures'} />
+      <ToolHeader icon={<BookOpen />} tool="Tables & measures" title={tab === 'tables' ? 'Tables' : 'Measures'} />
       <Tabs
         label="Field guide sections"
         className="mb-5"
@@ -80,15 +79,15 @@ function FieldGuide({ meta }: { meta: ModelMetadata }) {
           { value: 'measures', label: 'Measures', count: meta.sections.measures.ok ? meta.measures.length : undefined },
         ]}
       />
-      {tab === 'tables' ? <TablesView meta={meta} orrery={orrery} onOpen={(n) => set({ table: n })} /> : <MeasuresView meta={meta} />}
-      <TableDrawer meta={meta} orrery={orrery} table={table} onClose={() => set({ table: null })} />
+      {tab === 'tables' ? <TablesView meta={meta} roles={roles} onOpen={(n) => set({ table: n })} /> : <MeasuresView meta={meta} />}
+      <TableDrawer meta={meta} roles={roles} table={table} onClose={() => set({ table: null })} />
     </>
   );
 }
 
 /* ------------------------------------------------------------------ tables */
 
-function TablesView({ meta, orrery, onOpen }: { meta: ModelMetadata; orrery: Orrery; onOpen: (name: string) => void }) {
+function TablesView({ meta, roles, onOpen }: { meta: ModelMetadata; roles: Map<string, TableRole>; onOpen: (name: string) => void }) {
   const { rows } = useModel();
   const [q, setQ] = useState('');
   const [showHidden, setShowHidden] = useState(true);
@@ -120,7 +119,7 @@ function TablesView({ meta, orrery, onOpen }: { meta: ModelMetadata; orrery: Orr
             onClick={() => rows.weigh(true)}
             data-testid="weigh-all"
           >
-            {rows.counts ? 'Weigh again' : 'Count all rows'}
+            {rows.counts ? 'Count again' : 'Count all rows'}
           </Button>
         </div>
       </Toolbar>
@@ -139,7 +138,7 @@ function TablesView({ meta, orrery, onOpen }: { meta: ModelMetadata; orrery: Orr
             <thead>
               <tr>
                 <Th>Table</Th>
-                <Th>Body</Th>
+                <Th>Role</Th>
                 <Th numeric>Rows</Th>
                 <Th numeric>Columns</Th>
                 <Th numeric>Measures</Th>
@@ -148,7 +147,7 @@ function TablesView({ meta, orrery, onOpen }: { meta: ModelMetadata; orrery: Orr
             </thead>
             <tbody>
               {list.map((t) => {
-                const b = orrery.byName.get(t.name);
+                const role = roles.get(t.name) ?? 'unrelated';
                 const n = rows.counts?.get(t.name);
                 return (
                   <Tr key={t.name} onClick={() => onOpen(t.name)}>
@@ -162,13 +161,13 @@ function TablesView({ meta, orrery, onOpen }: { meta: ModelMetadata; orrery: Orr
                         }}
                         data-testid="open-table"
                       >
-                        <BodyGlyph kind={b?.kind ?? 'planet'} hidden={t.isHidden} />
+                        <RoleMark role={role} hidden={t.isHidden} />
                         {t.name}
                       </button>
                       <div className="mt-0.5 line-clamp-2 pl-6 text-ui text-muted">{t.description || <span className="text-faint">No description</span>}</div>
                     </Td>
                     <Td muted className="whitespace-nowrap">
-                      {b ? kindShort(b) : '–'}
+                      {ROLE_LABEL[role]}
                     </Td>
                     <Td numeric>{n !== undefined ? n.toLocaleString() : <span className="text-faint">–</span>}</Td>
                     <Td numeric>{t.columnCount ?? 'n/a'}</Td>
@@ -197,7 +196,7 @@ function TablesView({ meta, orrery, onOpen }: { meta: ModelMetadata; orrery: Orr
   );
 }
 
-function TableDrawer({ meta, orrery, table, onClose }: { meta: ModelMetadata; orrery: Orrery; table: TableInfo | null; onClose: () => void }) {
+function TableDrawer({ meta, roles, table, onClose }: { meta: ModelMetadata; roles: Map<string, TableRole>; table: TableInfo | null; onClose: () => void }) {
   const { client, rows } = useModel();
   const [result, setResult] = useState<Outcome<number> | null>(null);
   const [busy, setBusy] = useState(false);
@@ -208,7 +207,7 @@ function TableDrawer({ meta, orrery, table, onClose }: { meta: ModelMetadata; or
   }
   const columns = table ? meta.columns.filter((c) => c.table === table.name) : [];
   const measures = table ? meta.measures.filter((m) => m.table === table.name) : [];
-  const body = table ? orrery.byName.get(table.name) : undefined;
+  const role: TableRole = table ? (roles.get(table.name) ?? 'unrelated') : 'unrelated';
   const cached = table ? rows.counts?.get(table.name) : undefined;
   const run = async () => {
     if (!table) return;
@@ -223,8 +222,8 @@ function TableDrawer({ meta, orrery, table, onClose }: { meta: ModelMetadata; or
         <div data-testid="table-drawer" className="space-y-6">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2 text-ui text-muted">
-              {body && <BodyGlyph kind={body.kind} hidden={table.isHidden} />}
-              {body && <span className="text-fg">{kindShort(body)}</span>}
+              <RoleMark role={role} hidden={table.isHidden} />
+              <span className="text-fg">{ROLE_LABEL[role]}</span>
               {table.isHidden && <HiddenChip />}
               {table.storageMode && <span className="font-mono text-xs">{table.storageMode}</span>}
             </div>
@@ -239,8 +238,8 @@ function TableDrawer({ meta, orrery, table, onClose }: { meta: ModelMetadata; or
               </div>
             </div>
             <div className="flex gap-2">
-              <LinkButton size="sm" variant="ghost" to={`/?focus=${encodeURIComponent(tableId(table.name))}`} icon={<Orbit aria-hidden="true" />}>
-                Fly to it
+              <LinkButton size="sm" variant="ghost" to={`/?focus=${encodeURIComponent(tableId(table.name))}`} icon={<Network aria-hidden="true" />}>
+                Show in diagram
               </LinkButton>
               <Button variant="primary" size="sm" busy={busy} onClick={run} data-testid="count-rows">
                 Count rows
@@ -302,14 +301,14 @@ function TableDrawer({ meta, orrery, table, onClose }: { meta: ModelMetadata; or
           {measures.length > 0 && (
             <section>
               <h3 className="m-0 mb-2 text-sm font-semibold">
-                Moons <span className="font-normal text-muted">measures on this table</span>
+                Measures <span className="font-normal text-muted">on this table</span>
               </h3>
               <ul className="m-0 list-none divide-y divide-[var(--line)] p-0">
                 {measures.map((m) => (
                   <li key={m.name} className="flex items-center justify-between gap-3 py-2 text-sm">
                     <span className={cx('min-w-0 break-words', m.isHidden && 'text-muted italic')}>{m.name}</span>
                     <LinkButton size="sm" variant="ghost" to={`/?focus=${encodeURIComponent(measureId(m.table, m.name))}`}>
-                      Fly to
+                      Show in diagram
                     </LinkButton>
                   </li>
                 ))}
@@ -355,7 +354,7 @@ function MeasuresView({ meta }: { meta: ModelMetadata }) {
   if (!meta.sections.measures.ok) return <SectionUnavailable meta={meta} section="measures" />;
   if (meta.measures.length === 0)
     return (
-      <EmptyState title="No moons: this model has no measures" icon={<BookOpen />}>
+      <EmptyState title="This model has no measures" icon={<BookOpen />}>
         Measures are the calculations report authors drag into visuals. When the model gets some, they show up here with their DAX.
       </EmptyState>
     );
@@ -401,7 +400,7 @@ function MeasureRow({ m, hiddenExpr }: { m: MeasureInfo; hiddenExpr: boolean }) 
       <div className="min-w-0">
         <div className="flex items-start gap-2">
           <span className="mt-1">
-            <BodyGlyph kind="moon" hidden={m.isHidden} color={cov === 'complete' ? 'var(--ok-solid)' : cov === 'missing-both' ? 'var(--bad-solid)' : 'var(--warn-solid)'} size={14} />
+            <StatusDot hidden={m.isHidden} color={cov === 'complete' ? 'var(--ok-solid)' : cov === 'missing-both' ? 'var(--bad-solid)' : 'var(--warn-solid)'} size={14} />
           </span>
           <div className="min-w-0">
             <div className="font-semibold break-words">{m.name}</div>
@@ -427,8 +426,8 @@ function MeasureRow({ m, hiddenExpr }: { m: MeasureInfo; hiddenExpr: boolean }) 
           </span>
           {m.isHidden && <HiddenChip />}
           <span className="sr-only">{COVERAGE_LABEL[cov]}</span>
-          <LinkButton size="sm" variant="ghost" to={`/?focus=${encodeURIComponent(measureId(m.table, m.name))}&lens=coverage`}>
-            Fly to
+          <LinkButton size="sm" variant="ghost" to={`/?focus=${encodeURIComponent(measureId(m.table, m.name))}`}>
+            Show in diagram
           </LinkButton>
         </div>
       </div>
