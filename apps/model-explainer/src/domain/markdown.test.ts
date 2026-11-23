@@ -2,11 +2,11 @@ import { FIXED_NOW } from '@x10/shared/test';
 
 import { financeModel, loadMock, operationsModel } from '../test/fixtures';
 import { evaluateHealth } from './findings';
-import { buildMarkdown, keyMeasures } from './markdown';
+import { buildMarkdown, measuresByTable } from './markdown';
 import { EXPRESSIONS_HIDDEN_NOTE } from './metadata';
 
 describe('acceptance 4: Copy as Markdown produces a complete one-pager', () => {
-  it('has counts, key measures with expressions, relationships and findings', async () => {
+  it('has counts, a diagram, relationships, every measure with its DAX, and health alerts, in that order', async () => {
     const meta = await loadMock();
     const md = buildMarkdown(meta, evaluateHealth(meta), FIXED_NOW);
     expect(md).toMatch(/^# Sample Sales Model\n/);
@@ -15,28 +15,38 @@ describe('acceptance 4: Copy as Markdown produces a complete one-pager', () => {
     expect(md).toContain('| Tables | Columns | Measures | Relationships | Hidden objects | Health score |');
     expect(md).toContain(`| 9 | ${meta.columns.length} | 14 | 8 |`);
     expect(md).toContain('52/100 (Needs work)');
-    // Key measures with expressions (fenced DAX)
-    expect(md).toContain('### Total Sales');
+    // Sections in order
+    const order = ['## At a glance', '## Diagram', '## Tables', '## Relationships', '## Measures', '## Health alerts'].map((h) => md.indexOf(`\n${h}\n`));
+    expect(order.every((i) => i > 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    // Diagram as Mermaid
+    expect(md).toContain('```mermaid\nflowchart LR\n');
+    // Every measure, grouped by table, with description and fenced DAX
+    expect(md).toContain('### Sales\n');
+    expect(md).toContain('#### Total Sales');
     expect(md).toContain("```dax\nSUM ( 'Sales'[Sales Amount] )\n```");
-    expect(md).toContain('### Sales [Prior Year]');
-    expect(md).toContain('### Target Gap');
+    expect(md).toContain('#### Sales [Prior Year]');
+    expect(md).toContain('#### Target Gap');
     expect(md).toContain('_Expression not available._');
-    expect(md).not.toContain('### _Base Sales'); // hidden
+    expect(md).toContain('_No description._');
+    expect(md).toContain('#### _Base Sales (hidden)');
     // Relationships
     expect(md).toContain('| Sales[Ship Date] | Date[Date] | Many to one (*:1) | Single direction | No |');
     expect(md).toContain('| Sales[Customer Key] | Customer[Customer Key] | Many to one (*:1) | Both directions | Yes |');
     expect(md).toContain("| Manager's Targets[Region] | Store[Region] | Many to many (*:*) | Single direction | Yes |");
-    // Findings, all eight
+    // Health alerts, all eight, with advice
     expect(md.match(/^- \*\*(Warning|Info): /gm)).toHaveLength(8);
+    expect(md).toContain('Prefer single direction and use CROSSFILTER');
     expect(md).toContain('Score 52/100: 4 warnings, 4 info.');
   });
 
-  it('escapes pipes in table cells and keeps one entry per visible measure', async () => {
+  it('escapes pipes in table cells and lists every measure once', async () => {
     const meta = await loadMock();
     meta.tables[0] = { ...meta.tables[0], description: 'A | B' };
     const md = buildMarkdown(meta, evaluateHealth(meta), FIXED_NOW);
     expect(md).toContain('A \\| B');
-    expect(keyMeasures(meta)).toHaveLength(13);
+    expect(measuresByTable(meta).flatMap((g) => g.measures)).toHaveLength(meta.measures.length);
+    expect(measuresByTable(meta).map((g) => g.table)).toEqual([...new Set(meta.measures.map((m) => m.table))].sort((a, b) => a.localeCompare(b)));
   });
 
   it('says so when expressions are not exposed', async () => {

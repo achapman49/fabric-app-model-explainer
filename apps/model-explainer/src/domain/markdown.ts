@@ -1,11 +1,10 @@
-/** One-pager as Markdown: counts, health, key measures with expressions, relationships and findings. */
+/** The summary as Markdown: counts, a Mermaid diagram, tables, relationships, every measure with its DAX, and health alerts. */
 import { mdCell, mdTable } from '@x10/shared/lib';
 
 import { SCORE_FORMULA, scoreLabel, type HealthReport } from './findings';
+import { mermaidDiagram } from './mermaid';
 import { EXPRESSIONS_HIDDEN_NOTE, expressionsHidden, hiddenObjectCount } from './metadata';
 import { SECTION_LABELS, type MeasureInfo, type ModelMetadata, type SectionKey } from './types';
-
-export const ONE_PAGER_MAX_MEASURES = 40;
 
 export function crossFilterLabel(c: 'single' | 'both'): string {
   return c === 'both' ? 'Both directions' : 'Single direction';
@@ -15,12 +14,13 @@ export function cardinalityLabel(c: string): string {
   return { 'many-to-one': 'Many to one (*:1)', 'one-to-many': 'One to many (1:*)', 'one-to-one': 'One to one (1:1)', 'many-to-many': 'Many to many (*:*)' }[c] ?? c;
 }
 
-/** Key measures: visible ones, documented first, then by table and name. */
-export function keyMeasures(meta: ModelMetadata, max = ONE_PAGER_MAX_MEASURES): MeasureInfo[] {
-  return meta.measures
-    .filter((m) => !m.isHidden)
-    .sort((a, b) => a.table.localeCompare(b.table) || a.name.localeCompare(b.name))
-    .slice(0, max);
+/** Every measure, hidden ones included, grouped by home table (tables and measures in name order). */
+export function measuresByTable(meta: ModelMetadata): { table: string; measures: MeasureInfo[] }[] {
+  const groups = new Map<string, MeasureInfo[]>();
+  for (const m of meta.measures) groups.set(m.table, [...(groups.get(m.table) ?? []), m]);
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([table, measures]) => ({ table, measures: [...measures].sort((a, b) => a.name.localeCompare(b.name)) }));
 }
 
 function fence(code: string): string {
@@ -60,6 +60,18 @@ export function buildMarkdown(meta: ModelMetadata, health: HealthReport, generat
   );
   out.push('');
 
+  const diagram = mermaidDiagram(meta);
+  if (diagram) {
+    out.push('## Diagram');
+    out.push('');
+    out.push('```mermaid');
+    out.push(diagram);
+    out.push('```');
+    out.push('');
+    out.push('Arrows point the way filters flow (from the one side to the many side); dotted lines are inactive; bold boxes are fact tables.');
+    out.push('');
+  }
+
   if (meta.sections.tables.ok && meta.tables.length) {
     out.push('## Tables');
     out.push('');
@@ -70,39 +82,6 @@ export function buildMarkdown(meta: ModelMetadata, health: HealthReport, generat
       ),
     );
     out.push('');
-  }
-
-  out.push('## Key measures');
-  out.push('');
-  if (!meta.sections.measures.ok) out.push('Measure metadata is not available for this model.');
-  else if (!meta.measures.length) out.push('This model has no measures.');
-  else {
-    const hidden = expressionsHidden(meta);
-    if (hidden) {
-      out.push(`> ${EXPRESSIONS_HIDDEN_NOTE}`);
-      out.push('');
-    }
-    const list = keyMeasures(meta);
-    for (const m of list) {
-      out.push(`### ${m.name}`);
-      out.push('');
-      const meta1 = [`Table: ${m.table}`, m.displayFolder && `Folder: ${m.displayFolder}`, `Format: ${m.formatString ? `\`${m.formatString}\`` : '(none)'}`].filter(Boolean);
-      out.push(meta1.join(' · '));
-      out.push('');
-      if (m.description) {
-        out.push(m.description);
-        out.push('');
-      }
-      if (!hidden) {
-        out.push(m.expression && m.expression.trim() ? fence(m.expression) : '_Expression not available._');
-        out.push('');
-      }
-    }
-    const visible = meta.measures.filter((m) => !m.isHidden).length;
-    if (visible > list.length) {
-      out.push(`_${visible - list.length} more visible measures not shown._`);
-      out.push('');
-    }
   }
 
   out.push('## Relationships');
@@ -124,15 +103,45 @@ export function buildMarkdown(meta: ModelMetadata, health: HealthReport, generat
     );
   out.push('');
 
-  out.push('## Health findings');
+  out.push('## Measures');
+  out.push('');
+  if (!meta.sections.measures.ok) out.push('Measure metadata is not available for this model.');
+  else if (!meta.measures.length) out.push('This model has no measures.');
+  else {
+    const hidden = expressionsHidden(meta);
+    if (hidden) {
+      out.push(`> ${EXPRESSIONS_HIDDEN_NOTE}`);
+      out.push('');
+    }
+    for (const g of measuresByTable(meta)) {
+      out.push(`### ${g.table}`);
+      out.push('');
+      for (const m of g.measures) {
+        out.push(`#### ${m.name}${m.isHidden ? ' (hidden)' : ''}`);
+        out.push('');
+        const facts = [m.displayFolder && `Folder: ${m.displayFolder}`, `Format: ${m.formatString ? `\`${m.formatString}\`` : '(none)'}`].filter(Boolean);
+        out.push(facts.join(' · '));
+        out.push('');
+        out.push(m.description || '_No description._');
+        out.push('');
+        if (!hidden) {
+          out.push(m.expression && m.expression.trim() ? fence(m.expression) : '_Expression not available._');
+          out.push('');
+        }
+      }
+    }
+  }
+  out.push('');
+
+  out.push('## Health alerts');
   out.push('');
   out.push(`Score ${health.score}/100: ${health.warnings} warnings, ${health.infos} info. ${SCORE_FORMULA}`);
   out.push('');
-  if (!health.findings.length) out.push('No findings. Every rule that could run passed.');
+  if (!health.findings.length) out.push('No alerts. Every rule that could run passed.');
   for (const f of health.findings) {
     const shown = f.objects.slice(0, 10).map(mdCell).join(', ');
     const more = f.objects.length > 10 ? `, and ${f.objects.length - 10} more` : '';
-    out.push(`- **${f.severity === 'warning' ? 'Warning' : 'Info'}: ${f.title}.** ${f.summary} ${shown ? `Affected: ${shown}${more}.` : ''}`.trimEnd());
+    out.push(`- **${f.severity === 'warning' ? 'Warning' : 'Info'}: ${f.title}.** ${f.summary} ${f.advice}${shown ? ` Affected: ${shown}${more}.` : ''}`);
   }
   if (health.skipped.length) {
     out.push('');

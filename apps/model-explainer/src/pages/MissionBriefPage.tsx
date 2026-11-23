@@ -10,7 +10,7 @@ import { SeverityChip, ToolHeader, WithMetadata } from '../components/common';
 import { Dax } from '../components/Dax';
 import { ModelMap } from '../components/ModelMap';
 import { evaluateHealth, SCORE_FORMULA, scoreLabel } from '../domain/findings';
-import { buildMarkdown, cardinalityLabel, crossFilterLabel, keyMeasures } from '../domain/markdown';
+import { buildMarkdown, cardinalityLabel, crossFilterLabel, measuresByTable } from '../domain/markdown';
 import { EXPRESSIONS_HIDDEN_NOTE, expressionsHidden, hiddenObjectCount } from '../domain/metadata';
 import { tableRoles } from '../domain/model';
 import { SECTION_LABELS, type ModelMetadata, type SectionKey } from '../domain/types';
@@ -26,7 +26,7 @@ export function MissionBriefPage() {
 function Brief({ meta }: { meta: ModelMetadata }) {
   const health = evaluateHealth(meta);
   const markdown = () => buildMarkdown(meta, health, new Date());
-  const measures = keyMeasures(meta);
+  const measures = measuresByTable(meta).flatMap((g) => g.measures);
   const hiddenExpr = expressionsHidden(meta);
   const roles = useMemo(() => tableRoles(meta), [meta]);
   const unavailable = (Object.keys(meta.sections) as SectionKey[]).filter((k) => !meta.sections[k].ok);
