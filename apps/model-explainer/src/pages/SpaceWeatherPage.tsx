@@ -1,11 +1,12 @@
 /**
- * Health: a row of indicator tiles (the score and the numbers behind it), then a checklist with one item per object a
- * rule flags, to tick off while fixing the model. Ticks are remembered per model in this browser.
+ * Health: the score as the headline (a ring), tiles for the numbers behind it and the checklist's progress, then a
+ * checklist with one item per object a rule flags, to tick off while fixing the model. Ticks are remembered per model
+ * in this browser.
  */
 import { useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { CircleCheck, CircleDashed, HeartPulse, Info, ListChecks, Network, OctagonAlert, RotateCcw, TriangleAlert } from 'lucide-react';
 
-import { Button, cx, EmptyState, LinkButton, Switch, useReducedMotion } from '@x10/shared/ui';
+import { Button, cx, EmptyState, LinkButton, ProgressRing, Switch, useReducedMotion } from '@x10/shared/ui';
 
 import { SeverityChip, ToolHeader, WithMetadata } from '../components/common';
 import { RULES } from '../config/rules';
@@ -64,8 +65,8 @@ function Health({ meta }: { meta: ModelMetadata }) {
     { severity: 'info', title: 'Info', points: `−${S.perInfo} each, at most −${S.infoCap}` },
   ];
 
-  const jumpTo = (rule: string) => {
-    const el = document.getElementById(`check-${rule}`);
+  const jumpTo = (elementId: string) => {
+    const el = document.getElementById(elementId);
     el?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
     el?.focus({ preventScroll: true });
   };
@@ -74,22 +75,25 @@ function Health({ meta }: { meta: ModelMetadata }) {
     <>
       <ToolHeader icon={<HeartPulse />} tool="Health" title="Health findings" />
 
-      {/* Indicators */}
-      <section aria-label="Health indicators">
-        <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4" data-testid="health-indicators">
-          {indicators.map((i) => (
-            <IndicatorTile key={i.id} indicator={i} target={i.rules.find((r) => groups.some((g) => g.rule === r)) ?? null} onJump={jumpTo} />
-          ))}
-        </ul>
-        <details className="mt-4 text-sm">
-          <summary className="cursor-pointer font-medium text-muted hover:text-fg">How the score is calculated</summary>
-          <p className="m-0 mt-2 font-mono text-fg num" data-testid="score-calculation">
+      {/* The score is the headline; the tiles are the numbers behind it. */}
+      <section aria-label="Health indicators" data-testid="health-indicators">
+        <ScoreHero indicator={indicators.find((i) => i.id === 'score')!} score={h.score}>
+          <p className="m-0 mt-3 font-mono text-sm text-fg num" data-testid="score-calculation">
             This model: {S.start} − {deductW} ({h.warnings} warning{h.warnings === 1 ? '' : 's'}) − {deductI} ({h.infos} info) = {h.score}.
           </p>
-          <p className="m-0 mt-1 max-w-[80ch] text-muted" data-testid="score-formula">
+          <p className="m-0 mt-1 max-w-[70ch] text-xs text-muted" data-testid="score-formula">
             {SCORE_FORMULA}
           </p>
-        </details>
+        </ScoreHero>
+        <ul className="m-0 mt-3 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4">
+          {indicators
+            .filter((i) => i.id !== 'score')
+            .map((i) => {
+              const rule = i.rules.find((r) => groups.some((g) => g.rule === r));
+              return <IndicatorTile key={i.id} indicator={i} onJump={rule ? () => jumpTo(`check-${rule}`) : undefined} />;
+            })}
+          <ChecklistTile done={overall.done} total={overall.total} onJump={() => jumpTo('checklist')} />
+        </ul>
       </section>
 
       {h.skipped.length > 0 && (
@@ -102,7 +106,7 @@ function Health({ meta }: { meta: ModelMetadata }) {
       )}
 
       {/* Checklist */}
-      <section className="mt-10" aria-labelledby="checklist-h" data-testid="checklist">
+      <section id="checklist" tabIndex={-1} className="mt-10 scroll-mt-24 outline-none" aria-labelledby="checklist-h" data-testid="checklist">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-line pb-4">
           <div className="min-w-0">
             <h2 id="checklist-h" className="m-0 flex items-center gap-2 text-lg font-semibold">
@@ -184,8 +188,71 @@ function Health({ meta }: { meta: ModelMetadata }) {
   );
 }
 
+/** The headline: the score inside a ring in its status colour, with its status in words and the breakdown beside it. */
+function ScoreHero({ indicator: i, score, children }: { indicator: Indicator; score: number; children: ReactNode }) {
+  const tone = TONE[i.status];
+  const ringTone = i.status === 'ok' || i.status === 'warn' || i.status === 'bad' ? i.status : 'brand';
+  return (
+    <div className="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-xl border border-line bg-surface p-5" data-testid="indicator-score" data-status={i.status}>
+      <ProgressRing value={score} size={152} thickness={11} tone={ringTone} label={`Health score ${score} out of 100`}>
+        <span className="flex flex-col items-center">
+          <span className="text-5xl leading-none font-semibold tracking-[-0.03em] num" data-testid="health-score">
+            {score}
+          </span>
+          <span className="mt-1 font-mono text-xs text-muted">/ 100</span>
+        </span>
+      </ProgressRing>
+      <div className="min-w-[220px] flex-1">
+        <p className="m-0 text-sm text-muted">Health score</p>
+        <p className="m-0 mt-1 flex items-center gap-2 text-2xl font-semibold tracking-[-0.01em]">
+          <tone.Icon className={cx('size-6', tone.icon)} aria-hidden="true" />
+          {i.statusLabel}
+        </p>
+        <p className="m-0 mt-1 text-sm text-muted">{i.hint}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Checklist progress as a tile, so the dashboard also says how much is done. */
+function ChecklistTile({ done, total, onJump }: { done: number; total: number; onJump: () => void }) {
+  const complete = total > 0 && done === total;
+  const tone = complete ? TONE.ok : null;
+  return (
+    <li data-testid="indicator-checklist">
+      <button
+        type="button"
+        onClick={onJump}
+        className={cx(TILE, 'w-full cursor-pointer transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--row-hover)] focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none')}
+        aria-label={`Checklist: ${done} of ${total} done. Go to the checklist.`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-sm text-muted">Checklist</span>
+          <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-fg">
+            {tone ? <tone.Icon className={cx('size-3.5', tone.icon)} aria-hidden="true" /> : <ListChecks className="size-3.5 text-[var(--accent-11)]" aria-hidden="true" />}
+            {total === 0 ? 'Nothing to do' : complete ? 'All done' : 'To do'}
+          </span>
+        </div>
+        <div className="mt-2 flex items-baseline gap-1.5">
+          <span className="text-3xl leading-none font-semibold tracking-[-0.02em] num">{done}</span>
+          <span className="text-sm text-muted num">of {total} done</span>
+        </div>
+        {total > 0 && (
+          <div className="mt-3">
+            <Bar ratio={done / total} fill={tone ? tone.fill : 'var(--accent-9)'} track={tone ? tone.track : 'var(--accent-3)'} label="Checklist done" />
+          </div>
+        )}
+        <p className="m-0 mt-auto pt-3 text-xs text-muted">Items ticked off in this browser</p>
+      </button>
+    </li>
+  );
+}
+
+const TILE = 'flex h-full flex-col rounded-xl border border-line bg-surface p-4 text-left';
+
 /** A stat tile: label and status (icon + words), the figure, a meter for shares, and a one-line hint. */
-function IndicatorTile({ indicator: i, target, onJump }: { indicator: Indicator; target: string | null; onJump: (rule: string) => void }) {
+function IndicatorTile({ indicator: i, onJump }: { indicator: Indicator; onJump?: () => void }) {
   const tone = TONE[i.status];
   const body: ReactNode = (
     <>
@@ -197,9 +264,7 @@ function IndicatorTile({ indicator: i, target, onJump }: { indicator: Indicator;
         </span>
       </div>
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span className="text-3xl leading-none font-semibold tracking-[-0.02em] num" data-testid={i.id === 'score' ? 'health-score' : undefined}>
-          {i.value}
-        </span>
+        <span className="text-3xl leading-none font-semibold tracking-[-0.02em] num">{i.value}</span>
         {i.unit && <span className="text-sm text-muted num">{i.unit}</span>}
       </div>
       {i.ratio !== null && (
@@ -210,20 +275,19 @@ function IndicatorTile({ indicator: i, target, onJump }: { indicator: Indicator;
       <p className="m-0 mt-auto pt-3 text-xs text-muted">{i.hint}</p>
     </>
   );
-  const box = 'flex h-full flex-col rounded-xl border border-line bg-surface p-4 text-left';
   return (
     <li data-testid={`indicator-${i.id}`} data-status={i.status}>
-      {target ? (
+      {onJump ? (
         <button
           type="button"
-          onClick={() => onJump(target)}
-          className={cx(box, 'w-full cursor-pointer transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--row-hover)] focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none')}
+          onClick={onJump}
+          className={cx(TILE, 'w-full cursor-pointer transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--row-hover)] focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none')}
           aria-label={`${i.label}: ${i.value}${i.unit ? ` ${i.unit}` : ''}, ${i.statusLabel}. Go to its checklist items.`}
         >
           {body}
         </button>
       ) : (
-        <div className={box}>{body}</div>
+        <div className={TILE}>{body}</div>
       )}
     </li>
   );

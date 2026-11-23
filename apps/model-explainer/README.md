@@ -22,8 +22,8 @@ tables sit in the centre column with their dimensions either side; tables with n
 - **Find** any table, column or measure by name; hover a table or key column to light up its links; switch hidden
   columns and measures off to see what report authors see. Drag to pan, scroll to zoom, `Esc` clears the focus.
 - **Other screens:** **Relationships** (compact diagram and the full list), **Tables & measures** (tables with columns
-  and row counts, measures with highlighted DAX), **Health** (indicator tiles for the score, documentation coverage,
-  relationship risks and names, then a checklist of every flagged object to tick off, each linked to the diagram), **Sample questions**, **Summary** (printable one-pager with a map, or Markdown).
+  and row counts, measures with highlighted DAX), **Health** (the score in a ring as the headline, tiles for documentation
+  coverage, relationship risks, names and checklist progress, then a checklist of every flagged object to tick off, each linked to the diagram), **Sample questions**, **Summary** (printable one-pager with a map, or Markdown).
 - With reduced motion the dots stop and arrowheads show the direction.
 
 ## 1. Prerequisites
@@ -135,7 +135,7 @@ live in memory.
 relationships, find, hidden fields switch) · Relationships (SVG diagram with pan and zoom by buttons, wheel, drag or
 keyboard; key; list alternative) · Tables & measures: Tables (grid, drawer with columns, on-demand
 `EVALUATE ROW("n", COUNTROWS('<table>'))`, Count all rows) and Measures (search, filters for missing description /
-format string, highlighted DAX with copy) · Health (eight indicator tiles with status and meters, the score calculation,
+format string, highlighted DAX with copy) · Health (score ring with its status and calculation, eight tiles with status and meters,
 a checklist with one tickable item per flagged object grouped by rule with progress and Show in diagram, passed and
 skipped rules) · Sample questions (up to 6 numeric measures x 4 related text or date
 columns, `EVALUATE TOPN(20, SUMMARIZECOLUMNS('<table>'[<column>], "v", [<measure>]), [v], DESC)`, grid + bar chart) ·
