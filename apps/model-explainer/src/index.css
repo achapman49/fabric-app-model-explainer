@@ -5,13 +5,6 @@
 /* ------------------------------------------------------------------ summary print */
 
 @media print {
-  /* The Summary diagram scrolls sideways on screen; on paper it fits the page. */
-  .x-snapshot {
-    overflow: visible !important;
-  }
-  .x-snapshot svg {
-    min-width: 0 !important;
-  }
   #main {
     max-width: none;
     padding: 0;
