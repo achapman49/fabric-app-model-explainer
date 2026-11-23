@@ -4,15 +4,15 @@ import { AppShell } from '@x10/shared/runtime';
 
 import { NavGuard } from './components/common';
 import { AboutPage } from './pages/AboutPage';
+import { DiagramPage } from './pages/DiagramPage';
 import { FieldGuidePage } from './pages/FieldGuidePage';
 import { MissionBriefPage } from './pages/MissionBriefPage';
 import { ProbesPage } from './pages/ProbesPage';
 import { SpaceWeatherPage } from './pages/SpaceWeatherPage';
 import { StarChartPage } from './pages/StarChartPage';
-import { SystemPage } from './pages/SystemPage';
 import { ModelProvider } from './state/ModelContext';
 
-/** One shell for every route; the home route is the full-bleed sky. */
+/** One shell for every route; the home route is the full-bleed diagram. */
 function Layout() {
   const { pathname } = useLocation();
   const home = pathname === '/';
@@ -30,7 +30,7 @@ export function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<SystemPage />} />
+        <Route index element={<DiagramPage />} />
         <Route path="star-chart" element={<StarChartPage />} />
         <Route path="field-guide" element={<FieldGuidePage />} />
         <Route path="space-weather" element={<SpaceWeatherPage />} />
