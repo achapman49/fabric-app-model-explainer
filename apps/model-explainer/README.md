@@ -155,13 +155,15 @@ npx playwright test                    # smoke and acceptance at 390 px and 1280
 
 ## 3. Deploy
 
-Nothing that identifies your tenant, workspace, model or deployed app goes in the repo. The deploy reads them from
-git-ignored local files:
+The committed configuration explains the fictional sample model this project ships, **X10 Retail Demo Model**
+(built by `tools/demo-model/` from generated data, no data source or credentials). Pointing the app at your own model
+is a local-only change. Either way, nothing that identifies your tenant, workspace, model or deployed app goes in the
+repo: the deploy reads it from git-ignored local files.
 
 | File (under `apps/model-explainer/`) | Holds | Written by |
 |---|---|---|
 | `rayfin/.env` | `MODEL_WORKSPACE_ID`, `MODEL_ITEM_ID` (the semantic model to explain) | you, once |
-| `.env.fabric.local` | `VITE_MODEL_LABEL` (the model's name in the picker) | you, once |
+| `.env.fabric.local` | `VITE_MODEL_LABEL` (the model's name in the picker; only for your own model) | you, once |
 | `rayfin/.deployments.json`, `rayfin/.env` (public values), `.env.local` | item id, API URL, publishable key | `rayfin up` |
 
 `rayfin/rayfin.yml` refers to the model only through variables:
@@ -176,18 +178,19 @@ connectors:
 ```
 
 1. Sign in: `npx rayfin login` (opens a browser; the token stays in your OS keychain).
-2. Find the model: `npx rayfin connector search --all-workspaces --type fabric-semanticmodel` lists the models you
-   can reach with their workspace and item ids (they are also in the model's portal URL,
-   `.../groups/<workspace-id>/datasets/<item-id>`).
-3. Create the two local files:
+2. Choose the model.
+   - **The sample (default).** Create it in a workspace with the Azure CLI signed in (`az login`):
+     `node tools/demo-model/deploy.mjs <model-workspace-id>`. It prints `Model id: <id>`. Nothing else is needed: the
+     picker already says "X10 Retail Demo Model".
+   - **Your own model (local only).** `npx rayfin connector search --all-workspaces --type fabric-semanticmodel` lists
+     the models you can reach with their workspace and item ids (also in the model's portal URL,
+     `.../groups/<workspace-id>/datasets/<item-id>`). Put its name in `apps/model-explainer/.env.fabric.local`:
+     `VITE_MODEL_LABEL=<name shown in the model picker>`.
+3. Put the model's ids in `apps/model-explainer/rayfin/.env`:
 
    ```bash
-   # apps/model-explainer/rayfin/.env
    MODEL_WORKSPACE_ID=<model-workspace-id>
    MODEL_ITEM_ID=<model-item-id>
-
-   # apps/model-explainer/.env.fabric.local
-   VITE_MODEL_LABEL=<name shown in the model picker>
    ```
 
 4. Deploy, previewing first if you like:
