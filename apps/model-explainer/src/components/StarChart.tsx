@@ -1,6 +1,6 @@
 /**
- * The star chart: the model's relationship diagram drawn flat, as a chart of the sky. Hand-written SVG (layout in
- * domain/diagram.ts). It is the Star chart tool and the centrepiece when WebGL is not available.
+ * The compact relationship diagram on the Relationships screen: tables as boxes, relationships as lines with arrowheads
+ * at the filtered end and cardinality labels. Hand-written SVG (layout in domain/diagram.ts) with pan and zoom.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Maximize2, Minus, Plus } from 'lucide-react';
@@ -8,41 +8,25 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Maximize2, Minus, Plus } fro
 import { cx, IconButton } from '@x10/shared/ui';
 
 import { fitView, layoutDiagram, readableView, zoomView, type DiagramTable, type ViewBox } from '../domain/diagram';
-import type { BodyKind } from '../domain/orrery';
+import type { TableRole } from '../domain/model';
 import type { RelationshipInfo } from '../domain/types';
 
 const ZOOM_STEP = 1.25;
-
-export interface NodePaint {
-  /** Body colour (CSS). */
-  fill?: string;
-  flare?: 'warn' | 'info' | null;
-  ghost?: boolean;
-}
 
 export function StarChart({
   tables,
   relationships,
   selected,
   onSelect,
-  kinds,
-  paint,
-  edgeStroke,
-  fill,
+  roles,
   className,
 }: {
   tables: DiagramTable[];
   relationships: RelationshipInfo[];
   selected: string | null;
   onSelect: (name: string | null) => void;
-  /** Body kind per table (stars get the accent glyph). */
-  kinds?: Map<string, BodyKind>;
-  /** Lens colours per table. */
-  paint?: (table: string) => NodePaint | undefined;
-  /** Lens colour per relationship (by index in `relationships`). */
-  edgeStroke?: (index: number) => string | undefined;
-  /** Fill the parent (centrepiece fallback) instead of a fixed height with a toolbar above. */
-  fill?: boolean;
+  /** Role per table (fact tables are tinted). */
+  roles?: Map<string, TableRole>;
   className?: string;
 }) {
   const layout = useMemo(() => layoutDiagram(tables, relationships), [tables, relationships]);
@@ -56,7 +40,6 @@ export function StarChart({
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const arrowId = `arrow-${uid}`;
   const arrowHiId = `arrow-hi-${uid}`;
-  const dotsId = `dots-${uid}`;
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -69,12 +52,10 @@ export function StarChart({
     return () => ro.disconnect();
   }, []);
 
-  // Over the stage, floating panels cover the edges: leave room around the drawing.
-  const pad = useCallback((v: ViewBox): ViewBox => (fill && window.innerWidth >= 768 ? { x: v.x - v.w * 0.2, y: v.y - v.h * 0.24, w: v.w * 1.4, h: v.h * 1.48 } : v), [fill]);
-  const fit = useCallback(() => setView(pad(fitView(layout, aspect))), [layout, aspect, pad]);
+  const fit = useCallback(() => setView(fitView(layout, aspect)), [layout, aspect]);
   useEffect(() => {
-    setView(size.width ? pad(readableView(layout, size)) : fitView(layout, 16 / 9));
-  }, [layout, size, pad]);
+    setView(size.width ? readableView(layout, size) : fitView(layout, 16 / 9));
+  }, [layout, size]);
 
   const center = (v: ViewBox) => ({ x: v.x + v.w / 2, y: v.y + v.h / 2 });
   const zoom = (factor: number) => setView((v) => zoomView(v, factor, center(v), layout));
@@ -158,21 +139,6 @@ export function StarChart({
     return s;
   }, [selected, relationships]);
 
-  // Orbit rings around the centre of every connected group (its first node is the hub of the radial layout).
-  const hubs = useMemo(() => {
-    const seen = new Set<number>();
-    const out: { x: number; y: number; r: number }[] = [];
-    for (const n of layout.nodes) {
-      if (seen.has(n.component)) continue;
-      seen.add(n.component);
-      const members = layout.nodes.filter((m) => m.component === n.component);
-      if (members.length < 2) continue;
-      const r = Math.max(...members.map((m) => Math.hypot(m.x - n.x, (m.y - n.y) / 0.7)));
-      out.push({ x: n.x, y: n.y, r });
-    }
-    return out;
-  }, [layout]);
-
   const summary = `${layout.nodes.length} tables and ${layout.edges.length} relationships in ${layout.components} connected group${layout.components === 1 ? '' : 's'}.`;
 
   const tools: { label: string; icon: ReactNode; run: () => void; pan?: boolean }[] = [
@@ -187,14 +153,12 @@ export function StarChart({
   const toolbar = (
     <div
       role="toolbar"
-      aria-label="Star chart controls"
-      className={cx('flex items-center gap-0.5', fill ? 'x-glass flex-col rounded-full! p-1' : 'flex-wrap')}
+      aria-label="Diagram controls"
+      className="flex flex-wrap items-center gap-0.5"
     >
-      {tools
-        .filter((t) => !fill || !t.pan)
-        .map((t, i) => (
+      {tools.map((t, i) => (
           <span key={t.label} className="contents">
-            {!fill && i === 3 && <span className="mx-1 hidden h-5 w-px bg-line sm:inline-block" aria-hidden="true" />}
+            {i === 3 && <span className="mx-1 hidden h-5 w-px bg-line sm:inline-block" aria-hidden="true" />}
             <IconButton size="sm" label={t.label} icon={t.icon} onClick={t.run} className={t.pan ? 'hidden sm:inline-flex' : undefined} />
           </span>
         ))}
@@ -202,19 +166,16 @@ export function StarChart({
   );
 
   return (
-    <div className={cx(fill ? 'absolute inset-0' : '', className)}>
-      {!fill && <div className="mb-2 flex flex-wrap items-center justify-between gap-2">{toolbar}<span className="hidden text-xs text-muted md:inline">Drag to pan · scroll to zoom · click a body</span></div>}
-      <div
-        ref={wrapRef}
-        className={cx(
-          'x-starchart overflow-hidden',
-          fill ? 'absolute inset-y-0 left-0 w-[calc(100%-var(--side-w,0px))]' : 'relative h-[460px] rounded-xl border border-line md:h-[560px]',
-        )}
-      >
+    <div className={className}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        {toolbar}
+        <span className="hidden text-xs text-muted md:inline">Drag to pan · scroll to zoom · click a table</span>
+      </div>
+      <div ref={wrapRef} className="relative h-[460px] overflow-hidden rounded-xl border border-line bg-surface-sunken md:h-[560px]">
         <svg
           ref={svgRef}
           role="img"
-          aria-label={`Star chart of the model. ${summary}`}
+          aria-label={`Relationship diagram of the model. ${summary}`}
           tabIndex={0}
           viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
           preserveAspectRatio="xMidYMid meet"
@@ -233,34 +194,19 @@ export function StarChart({
             <marker id={arrowHiId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M0,0 L10,5 L0,10 z" style={{ fill: 'var(--accent-10)' }} />
             </marker>
-            <pattern id={dotsId} width="44" height="44" patternUnits="userSpaceOnUse">
-              <circle cx="3" cy="5" r="0.9" style={{ fill: 'var(--world-ink-muted)' }} opacity="0.35" />
-              <circle cx="27" cy="31" r="0.6" style={{ fill: 'var(--world-ink-muted)' }} opacity="0.3" />
-              <circle cx="35" cy="12" r="0.5" style={{ fill: 'var(--accent-9)' }} opacity="0.4" />
-            </pattern>
           </defs>
-          <rect x={view.x} y={view.y} width={view.w} height={view.h} fill={`url(#${dotsId})`} />
-          <g aria-hidden="true">
-            {hubs.map((h, i) =>
-              [0.36, 0.68, 1].map((k) => (
-                <ellipse key={`${i}-${k}`} cx={h.x} cy={h.y} rx={h.r * k + 20} ry={(h.r * k + 20) * 0.7} fill="none" style={{ stroke: 'var(--world-ink-muted)' }} strokeOpacity={0.16} strokeDasharray={k === 1 ? '2 6' : undefined} />
-              )),
-            )}
-          </g>
           <g>
             {layout.edges.map((e) => {
-              const index = relationships.indexOf(e.rel);
               const hi = !!selected && (e.rel.fromTable === selected || e.rel.toTable === selected);
               const dim = !!selected && !hi;
-              const lens = edgeStroke?.(index);
               const marker = `url(#${hi ? arrowHiId : arrowId})`;
               return (
                 <g key={e.id} opacity={dim ? 0.18 : 1}>
                   <path
                     d={e.path}
                     fill="none"
-                    style={{ stroke: hi ? 'var(--accent-10)' : (lens ?? 'var(--gray-9)') }}
-                    strokeWidth={hi ? 2.5 : lens ? 2.2 : 1.5}
+                    style={{ stroke: hi ? 'var(--accent-10)' : 'var(--gray-9)' }}
+                    strokeWidth={hi ? 2.5 : 1.5}
                     strokeDasharray={e.dashed ? '7 5' : undefined}
                     markerStart={e.arrowStart ? marker : undefined}
                     markerEnd={e.arrowEnd ? marker : undefined}
@@ -282,7 +228,7 @@ export function StarChart({
                       fontSize={11}
                       fontWeight={600}
                       className="font-mono"
-                      style={{ fill: 'var(--muted)', stroke: 'var(--world-sky)', strokeWidth: 4, paintOrder: 'stroke' }}
+                      style={{ fill: 'var(--muted)', stroke: 'var(--surface-sunken)', strokeWidth: 4, paintOrder: 'stroke' }}
                     >
                       {l.text}
                     </text>
@@ -295,12 +241,8 @@ export function StarChart({
             {layout.nodes.map((n) => {
               const isSel = n.id === selected;
               const dim = !!neighbours && !neighbours.has(n.id);
-              const kind = kinds?.get(n.id) ?? 'planet';
-              const p = paint?.(n.id);
-              const body = kind === 'sun' ? 'var(--accent-9)' : (p?.fill ?? 'var(--gray-9)');
-              const ghost = p?.ghost ?? n.hidden;
-              const flare = p?.flare ? (p.flare === 'warn' ? 'var(--warn-solid)' : 'var(--info-solid)') : null;
-              const r = kind === 'sun' ? 8 : 6;
+              const fact = roles?.get(n.id) === 'fact';
+              const mark = fact ? 'var(--accent-9)' : 'var(--gray-9)';
               return (
                 <g
                   key={n.id}
@@ -317,29 +259,29 @@ export function StarChart({
                   <rect
                     width={n.w}
                     height={n.h}
-                    rx={n.h / 2}
+                    rx={8}
                     style={{
-                      fill: isSel ? 'var(--accent-3)' : 'var(--glass-strong)',
-                      stroke: isSel ? 'var(--accent-9)' : kind === 'sun' ? 'var(--accent-7)' : 'var(--line-strong)',
+                      fill: isSel || fact ? 'var(--accent-3)' : 'var(--surface)',
+                      stroke: isSel ? 'var(--accent-9)' : fact ? 'var(--accent-7)' : 'var(--line-strong)',
                     }}
                     strokeWidth={isSel ? 2 : 1}
-                    strokeDasharray={ghost ? '4 3' : undefined}
+                    strokeDasharray={n.hidden ? '4 3' : undefined}
                   />
-                  {kind === 'sun' && <circle cx={18} cy={n.h / 2} r={r + 5} style={{ fill: 'var(--accent-9)' }} opacity={0.18} />}
-                  {flare && <circle cx={18} cy={n.h / 2} r={r + 4} fill="none" style={{ stroke: flare }} strokeWidth={2} />}
-                  <circle
-                    cx={18}
-                    cy={n.h / 2}
-                    r={r}
-                    style={{ fill: ghost ? 'transparent' : body, stroke: body }}
-                    strokeWidth={ghost ? 1.5 : 0}
-                    strokeDasharray={ghost ? '2 2' : undefined}
+                  <rect
+                    x={11}
+                    y={n.h / 2 - 6}
+                    width={14}
+                    height={12}
+                    rx={3}
+                    style={{ fill: n.hidden ? 'transparent' : mark, stroke: mark }}
+                    strokeWidth={n.hidden ? 1.5 : 0}
+                    strokeDasharray={n.hidden ? '2 2' : undefined}
                   />
                   <text
                     x={32}
                     y={n.h / 2 + 4.5}
                     fontSize={13}
-                    fontWeight={kind === 'sun' ? 650 : 550}
+                    fontWeight={fact ? 650 : 550}
                     fontStyle={n.hidden ? 'italic' : undefined}
                     style={{ fill: n.hidden ? 'var(--muted)' : 'var(--text)' }}
                   >
@@ -350,14 +292,13 @@ export function StarChart({
             })}
           </g>
         </svg>
-        {fill && <div className="pointer-events-auto absolute top-1/2 right-4 -translate-y-1/2">{toolbar}</div>}
       </div>
-      {!fill && <StarChartKey />}
+      <StarChartKey />
     </div>
   );
 }
 
-/** Key for the star chart lines and marks (also read by the acceptance test). */
+/** Key for the diagram's lines and marks (also read by the acceptance test). */
 export function StarChartKey({ className }: { className?: string }) {
   const stroke = { stroke: 'var(--gray-9)' };
   const tri = (x: number, flip: boolean) => (
@@ -365,13 +306,12 @@ export function StarChartKey({ className }: { className?: string }) {
   );
   const item = 'flex items-center gap-2';
   return (
-    <ul className={cx('m-0 mt-3 flex list-none flex-wrap gap-x-5 gap-y-2 p-0 text-xs text-muted', className)} aria-label="Star chart key" data-testid="diagram-legend">
+    <ul className={cx('m-0 mt-3 flex list-none flex-wrap gap-x-5 gap-y-2 p-0 text-xs text-muted', className)} aria-label="Diagram key" data-testid="diagram-legend">
       <li className={item}>
         <svg width="16" height="16" aria-hidden="true">
-          <circle cx="8" cy="8" r="7" style={{ fill: 'var(--accent-9)' }} opacity="0.2" />
-          <circle cx="8" cy="8" r="5" style={{ fill: 'var(--accent-9)' }} />
+          <rect x="1" y="2" width="14" height="12" rx="3" style={{ fill: 'var(--accent-9)' }} />
         </svg>
-        Star: fact table
+        Fact table
       </li>
       <li className={item}>
         <svg width="36" height="20" aria-hidden="true">
@@ -406,7 +346,7 @@ export function StarChartKey({ className }: { className?: string }) {
       </li>
       <li className={item}>
         <svg width="16" height="16" aria-hidden="true">
-          <circle cx="8" cy="8" r="5.5" fill="none" style={stroke} strokeWidth="1.5" strokeDasharray="2 2" />
+          <rect x="1.5" y="2.5" width="13" height="11" rx="3" fill="none" style={stroke} strokeWidth="1.5" strokeDasharray="2 2" />
         </svg>
         Hidden table
       </li>

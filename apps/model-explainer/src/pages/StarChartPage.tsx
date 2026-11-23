@@ -1,14 +1,16 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Map as MapIcon, Orbit } from 'lucide-react';
+import { GitFork, Network } from 'lucide-react';
 
 import { Badge, Button, EmptyState, LinkButton, StatStrip, Stat, Table, TableWrap, Td, Th, Tr } from '@x10/shared/ui';
 
-import { BodyGlyph } from '../components/BodyGlyph';
 import { SectionUnavailable, ToolHeader, WithMetadata } from '../components/common';
+import { RoleMark } from '../components/RoleMark';
 import { StarChart } from '../components/StarChart';
 import { cardinalityLabel, crossFilterLabel } from '../domain/markdown';
-import { buildOrrery, tableId } from '../domain/orrery';
+import { components } from '../domain/diagram';
+import { allTableNames } from '../domain/metadata';
+import { tableId, tableRoles } from '../domain/model';
 import type { ModelMetadata } from '../domain/types';
 
 export function StarChartPage() {
@@ -17,12 +19,14 @@ export function StarChartPage() {
 
 function StarChartView({ meta }: { meta: ModelMetadata }) {
   const [params, setParams] = useSearchParams();
-  const orrery = useMemo(() => buildOrrery(meta), [meta]);
-  const names = new Set(orrery.bodies.map((b) => b.name));
+  const roles = useMemo(() => tableRoles(meta), [meta]);
+  const names = new Set(roles.keys());
   const selected = params.get('table') && names.has(params.get('table')!) ? params.get('table') : null;
   const select = (name: string | null) => setParams(name ? { table: name } : {}, { replace: true });
-  const tables = useMemo(() => orrery.bodies.map((b) => ({ name: b.name, isHidden: b.hidden })), [orrery]);
-  const kinds = useMemo(() => new Map(orrery.bodies.map((b) => [b.name, b.kind])), [orrery]);
+  const tables = useMemo(() => {
+    const hidden = new Map(meta.tables.map((t) => [t.name, t.isHidden]));
+    return allTableNames(meta).map((name) => ({ name, isHidden: hidden.get(name) ?? false }));
+  }, [meta]);
   const rels = useMemo(
     () =>
       [...meta.relationships].sort(
@@ -31,18 +35,19 @@ function StarChartView({ meta }: { meta: ModelMetadata }) {
     [meta.relationships],
   );
   const shown = selected ? rels.filter((r) => r.fromTable === selected || r.toTable === selected) : rels;
-  const stars = orrery.bodies.filter((b) => b.kind === 'sun').length;
-  const loose = orrery.bodies.filter((b) => b.kind === 'rogue').length;
+  const facts = [...roles.values()].filter((r) => r === 'fact').length;
+  const loose = [...roles.values()].filter((r) => r === 'unrelated').length;
+  const groups = useMemo(() => components(allTableNames(meta), meta.relationships).filter((g) => g.length > 1).length, [meta]);
 
   return (
     <>
       <ToolHeader
-        icon={<MapIcon />}
-        tool="Star chart"
+        icon={<GitFork />}
+        tool="Relationships"
         title="How the tables connect"
         actions={
-          <LinkButton to={selected ? `/?focus=${encodeURIComponent(tableId(selected))}` : '/'} icon={<Orbit aria-hidden="true" />}>
-            {selected ? `Fly to ${selected}` : 'Open the sky'}
+          <LinkButton to={selected ? `/?focus=${encodeURIComponent(tableId(selected))}` : '/'} icon={<Network aria-hidden="true" />}>
+            {selected ? `Show ${selected} in diagram` : 'Open diagram'}
           </LinkButton>
         }
       />
@@ -56,18 +61,18 @@ function StarChartView({ meta }: { meta: ModelMetadata }) {
           )}
         </>
       ) : tables.length === 0 ? (
-        <EmptyState title="Nothing to chart" icon={<MapIcon />}>
+        <EmptyState title="Nothing to chart" icon={<GitFork />}>
           The model returned no tables or relationships.
         </EmptyState>
       ) : (
         <>
           <StatStrip className="mb-5">
             <Stat label="Tables" value={<span className="num">{tables.length}</span>} />
-            <Stat label="Stars" value={<span className="num">{stars}</span>} hint="Fact tables" />
+            <Stat label="Fact tables" value={<span className="num">{facts}</span>} />
             <Stat label="Relationships" value={<span className="num">{meta.relationships.length}</span>} hint={`${meta.relationships.filter((r) => !r.isActive).length} inactive`} />
-            <Stat label="Systems" value={<span className="num">{orrery.systems.filter((s) => s.kind === 'star').length}</span>} hint={loose ? `${loose} loose table${loose === 1 ? '' : 's'}` : 'No loose tables'} />
+            <Stat label="Connected groups" value={<span className="num">{groups}</span>} hint={loose ? `${loose} unrelated table${loose === 1 ? '' : 's'}` : 'No unrelated tables'} />
           </StatStrip>
-          <StarChart tables={tables} relationships={meta.relationships} selected={selected} onSelect={select} kinds={kinds} />
+          <StarChart tables={tables} relationships={meta.relationships} selected={selected} onSelect={select} roles={roles} />
 
           <section className="mt-10" aria-labelledby="rel-h">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -82,7 +87,7 @@ function StarChartView({ meta }: { meta: ModelMetadata }) {
             </div>
             {shown.length === 0 ? (
               <EmptyState compact bordered title={selected ? `${selected} has no relationships` : 'No relationships'}>
-                {selected ? 'It drifts alone: no other table filters it.' : 'This model has tables but no relationships between them.'}
+                {selected ? 'No other table filters it, and it filters none.' : 'This model has tables but no relationships between them.'}
               </EmptyState>
             ) : (
               <TableWrap label="Relationship list">
@@ -101,14 +106,14 @@ function StarChartView({ meta }: { meta: ModelMetadata }) {
                       <Tr key={r.name} data-testid="relationship-row">
                         <Td className="break-words">
                           <span className="inline-flex items-center gap-2">
-                            <BodyGlyph kind={kinds.get(r.fromTable) ?? 'planet'} size={14} />
+                            <RoleMark role={roles.get(r.fromTable) ?? 'dimension'} size={14} />
                             <strong className="font-medium">{r.fromTable}</strong>
                           </span>
                           <span className="text-muted">[{r.fromColumn}]</span>
                         </Td>
                         <Td className="break-words">
                           <span className="inline-flex items-center gap-2">
-                            <BodyGlyph kind={kinds.get(r.toTable) ?? 'planet'} size={14} />
+                            <RoleMark role={roles.get(r.toTable) ?? 'dimension'} size={14} />
                             <strong className="font-medium">{r.toTable}</strong>
                           </span>
                           <span className="text-muted">[{r.toColumn}]</span>
