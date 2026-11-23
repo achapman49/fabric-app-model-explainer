@@ -11,7 +11,7 @@ import { Badge, Button, CopyButton, cx, LinkButton } from '@x10/shared/ui';
 
 import { SeverityChip, ToolHeader, WithMetadata } from '../components/common';
 import { Dax } from '../components/Dax';
-import { SchemaSnapshot } from '../components/SchemaSnapshot';
+import { ModelMap } from '../components/ModelMap';
 import { evaluateHealth, SCORE_FORMULA, scoreLabel } from '../domain/findings';
 import { buildMarkdown, cardinalityLabel, crossFilterLabel, measuresByTable } from '../domain/markdown';
 import { EXPRESSIONS_HIDDEN_NOTE, expressionsHidden, hiddenObjectCount, isNumericMeasure } from '../domain/metadata';
@@ -113,13 +113,11 @@ function Brief({ meta }: { meta: ModelMetadata }) {
             >
               Diagram
             </SectionTitle>
-            <div className="rounded-xl border border-line bg-surface-sunken p-2">
-              <SchemaSnapshot meta={meta} />
+            <div className="rounded-xl border border-line bg-surface-sunken p-3">
+              <ModelMap meta={meta} roles={roles} className="block h-auto max-h-[460px] w-full" />
             </div>
             <p className="m-0 mt-2 text-xs text-muted">
-              Each card lists a table's relationship keys (key mark), then columns and measures (Σ); long tables show the first few, and every measure is
-              listed below. Arrows point the way filters flow (two arrowheads: both ways); dashed lines are inactive relationships; cards marked FACT are fact
-              tables.
+              Tinted boxes are fact tables. Arrows point at the table being filtered (two arrowheads: both ways); dashed lines are inactive relationships.
             </p>
           </section>
         )}
