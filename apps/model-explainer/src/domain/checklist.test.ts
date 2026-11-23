@@ -54,19 +54,19 @@ describe('health indicators', () => {
   it('summarises the sales model with statuses that match its rules', async () => {
     const meta = await loadMock();
     const byId = new Map(healthIndicators(meta, evaluateHealth(meta)).map((i) => [i.id, i]));
-    expect(byId.get('score')).toMatchObject({ value: '52', status: 'bad' });
-    expect(byId.get('measures-described')).toMatchObject({ value: '54%', unit: '7 of 13', status: 'bad' });
-    expect(byId.get('tables-described')!.status).toBe('warn');
-    expect(byId.get('relationship-risks')).toMatchObject({ value: '2', status: 'bad', hint: '1 filter both ways · 1 many-to-many' });
-    expect(byId.get('inactive')).toMatchObject({ value: '1', status: 'warn' });
-    expect(byId.get('wide-tables')).toMatchObject({ value: '1', status: 'warn' });
+    expect(byId.get('score')).toMatchObject({ value: '52', status: 'bad', statusLabel: 'Needs work' });
+    expect(byId.get('measures-described')).toMatchObject({ value: '54%', unit: '7 of 13', status: 'warn', statusLabel: 'Warning' });
+    expect(byId.get('tables-described')).toMatchObject({ status: 'info', statusLabel: 'Info' });
+    expect(byId.get('relationship-risks')).toMatchObject({ value: '2', status: 'warn', hint: '1 filter both ways · 1 many-to-many' });
+    expect(byId.get('inactive')).toMatchObject({ value: '1', status: 'info' });
+    expect(byId.get('wide-tables')).toMatchObject({ value: '1', status: 'info' });
     for (const i of byId.values()) if (i.ratio !== null) expect(i.ratio).toBeGreaterThanOrEqual(0);
   });
 
   it('says n/a and not checked when metadata is blocked', async () => {
     const meta = await loadMock(financeModel);
     const byId = new Map(healthIndicators(meta, evaluateHealth(meta)).map((i) => [i.id, i]));
-    expect(byId.get('measures-described')).toMatchObject({ value: 'n/a', status: 'unknown', ratio: null });
+    expect(byId.get('measures-described')).toMatchObject({ value: 'n/a', status: 'unknown', statusLabel: 'Not checked', ratio: null });
     expect(byId.get('relationship-risks')).toMatchObject({ value: 'n/a', status: 'unknown' });
     expect(byId.get('tables-described')!.status).not.toBe('unknown');
   });

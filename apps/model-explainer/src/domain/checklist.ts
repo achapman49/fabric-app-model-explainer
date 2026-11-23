@@ -12,8 +12,11 @@ import type { ModelMetadata, RelationshipInfo, SectionKey } from './types';
 
 /* ------------------------------------------------------------------ indicators */
 
-/** ok: the rules behind it pass · warn: an info rule fired · bad: a warning rule fired · unknown: they were skipped. */
-export type IndicatorStatus = 'ok' | 'warn' | 'bad' | 'unknown';
+/**
+ * Same words and colours as the findings: ok (the rules behind it pass), info (an info rule fired), warn (a warning
+ * rule fired), unknown (skipped: metadata not available). Only the score uses bad (below 60).
+ */
+export type IndicatorStatus = 'ok' | 'info' | 'warn' | 'bad' | 'unknown';
 
 export interface Indicator {
   id: string;
@@ -25,25 +28,32 @@ export interface Indicator {
   /** 0..1 for figures that are a share (drawn as a meter), else null. */
   ratio: number | null;
   status: IndicatorStatus;
+  /** The status in words, shown with its icon (never colour alone). */
+  statusLabel: string;
   /** One line under the figure. */
   hint: string;
   /** Rules this indicator summarises (its checklist groups). */
   rules: RuleId[];
 }
 
-export const STATUS_LABEL: Record<IndicatorStatus, string> = {
+const STATUS_LABEL: Record<IndicatorStatus, string> = {
   ok: 'Passing',
-  warn: 'Worth a look',
-  bad: 'Needs action',
+  info: 'Info',
+  warn: 'Warning',
+  bad: 'Needs work',
   unknown: 'Not checked',
 };
 
-function statusOf(report: HealthReport, rules: RuleId[]): IndicatorStatus {
+function statusOf(report: HealthReport, rules: RuleId[]): { status: IndicatorStatus; statusLabel: string } {
   const fired = report.findings.filter((f) => rules.includes(f.rule));
-  if (fired.some((f) => f.severity === 'warning')) return 'bad';
-  if (fired.length) return 'warn';
-  if (rules.some((r) => report.skipped.some((s) => s.rule.id === r))) return 'unknown';
-  return 'ok';
+  const status: IndicatorStatus = fired.some((f) => f.severity === 'warning')
+    ? 'warn'
+    : fired.length
+      ? 'info'
+      : rules.some((r) => report.skipped.some((s) => s.rule.id === r))
+        ? 'unknown'
+        : 'ok';
+  return { status, statusLabel: STATUS_LABEL[status] };
 }
 
 const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '–');
@@ -59,7 +69,8 @@ export function healthIndicators(meta: ModelMetadata, report: HealthReport): Ind
     unit: '/ 100',
     ratio: report.score / 100,
     status: scoreTone(report.score),
-    hint: `${scoreLabel(report.score)} · ${report.warnings} warning${report.warnings === 1 ? '' : 's'}, ${report.infos} info`,
+    statusLabel: scoreLabel(report.score),
+    hint: `${report.warnings} warning${report.warnings === 1 ? '' : 's'}, ${report.infos} info`,
     rules: [],
   });
 
@@ -71,7 +82,7 @@ export function healthIndicators(meta: ModelMetadata, report: HealthReport): Ind
     value: has('measures') ? pct(described, visibleMeasures.length) : 'n/a',
     unit: has('measures') && visibleMeasures.length ? `${described} of ${visibleMeasures.length}` : undefined,
     ratio: has('measures') && visibleMeasures.length ? described / visibleMeasures.length : null,
-    status: statusOf(report, ['measures-no-description']),
+    ...statusOf(report, ['measures-no-description']),
     hint: `Flags when more than ${Math.round(RULES.measureDescriptionShare * 100)}% of visible measures have none`,
     rules: ['measures-no-description'],
   });
@@ -84,7 +95,7 @@ export function healthIndicators(meta: ModelMetadata, report: HealthReport): Ind
     value: has('measures') ? pct(formatted, numeric.length) : 'n/a',
     unit: has('measures') && numeric.length ? `${formatted} of ${numeric.length}` : undefined,
     ratio: has('measures') && numeric.length ? formatted / numeric.length : null,
-    status: statusOf(report, ['measures-no-format']),
+    ...statusOf(report, ['measures-no-format']),
     hint: 'Numeric measures with a format string',
     rules: ['measures-no-format'],
   });
@@ -97,7 +108,7 @@ export function healthIndicators(meta: ModelMetadata, report: HealthReport): Ind
     value: has('tables') ? pct(tablesDescribed, visibleTables.length) : 'n/a',
     unit: has('tables') && visibleTables.length ? `${tablesDescribed} of ${visibleTables.length}` : undefined,
     ratio: has('tables') && visibleTables.length ? tablesDescribed / visibleTables.length : null,
-    status: statusOf(report, ['tables-no-description']),
+    ...statusOf(report, ['tables-no-description']),
     hint: 'Visible tables with a description',
     rules: ['tables-no-description'],
   });
@@ -110,7 +121,7 @@ export function healthIndicators(meta: ModelMetadata, report: HealthReport): Ind
     value: has('relationships') ? String(both + m2m) : 'n/a',
     unit: has('relationships') ? `of ${meta.relationships.length}` : undefined,
     ratio: null,
-    status: statusOf(report, ['bidirectional', 'many-to-many']),
+    ...statusOf(report, ['bidirectional', 'many-to-many']),
     hint: has('relationships') ? `${both} filter both ways · ${m2m} many-to-many` : 'Relationships could not be read',
     rules: ['bidirectional', 'many-to-many'],
   });
@@ -122,7 +133,7 @@ export function healthIndicators(meta: ModelMetadata, report: HealthReport): Ind
     value: has('relationships') ? String(inactive) : 'n/a',
     unit: has('relationships') ? `of ${meta.relationships.length}` : undefined,
     ratio: null,
-    status: statusOf(report, ['inactive']),
+    ...statusOf(report, ['inactive']),
     hint: 'Only used through USERELATIONSHIP',
     rules: ['inactive'],
   });
@@ -139,7 +150,7 @@ export function healthIndicators(meta: ModelMetadata, report: HealthReport): Ind
     value: has('tables', 'columns', 'measures') ? pct(friendly, names.length) : 'n/a',
     unit: has('tables', 'columns', 'measures') && names.length ? `${friendly} of ${names.length}` : undefined,
     ratio: has('tables', 'columns', 'measures') && names.length ? friendly / names.length : null,
-    status: statusOf(report, ['unfriendly-names']),
+    ...statusOf(report, ['unfriendly-names']),
     hint: 'Visible names without underscores, tbl/dim or ALL CAPS',
     rules: ['unfriendly-names'],
   });
@@ -151,7 +162,7 @@ export function healthIndicators(meta: ModelMetadata, report: HealthReport): Ind
     value: has('tables', 'columns') ? String(wide) : 'n/a',
     unit: has('tables', 'columns') ? `of ${visibleTables.length}` : undefined,
     ratio: null,
-    status: statusOf(report, ['wide-tables']),
+    ...statusOf(report, ['wide-tables']),
     hint: `Visible tables with more than ${RULES.wideTableColumns} columns`,
     rules: ['wide-tables'],
   });
