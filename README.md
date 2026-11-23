@@ -238,13 +238,13 @@ before rendering. Names are always quoted (`'` doubled in table names, `]` doubl
 checked for balanced quoting before it runs. Nothing is persisted except the picked model and ticked checklist items,
 both in the viewer's localStorage.
 
-## 6. VERIFY outcomes and known limits
+## 6. Platform notes and known limits
 
-| VERIFY | Outcome |
+| Topic | Behaviour |
 |---|---|
-| DAX INFO functions through the connector | On the test tenant `INFO.TABLES()` / `INFO.MEASURES()` fail through the query API; `INFO.VIEW.TABLES/COLUMNS/MEASURES/RELATIONSHIPS()` work. The app tries `INFO.*` first, falls back to `INFO.VIEW.*`, and marks a section "not available for this model" (category, message, what was tried, Retry) when both fail. Both shapes are parsed (ids and numeric enums for `INFO.*`, names and text enums for `INFO.VIEW.*`); columns are matched by name with brackets stripped; `RowNumber-…` columns are excluded. |
-| Measure DAX | On this tenant `INFO.VIEW.MEASURES` returns no expressions (`Expression` is null for every measure), verified against the deployed X10 Retail Demo Model. Tables & measures, the info panel and the Summary then say the DAX isn't exposed by the query API and show everything else; "uses" and "used by" are unknown without it. The offline demo models keep their DAX so the expression views can be shown. |
-| Model ids in the repo | None: `rayfin.yml` reads `${MODEL_WORKSPACE_ID}` / `${MODEL_ITEM_ID}` at `rayfin up`. Deployed this way, the connector applied successfully. |
+| DAX INFO functions through the connector | `INFO.TABLES()` / `INFO.MEASURES()` can fail through the query API while `INFO.VIEW.TABLES/COLUMNS/MEASURES/RELATIONSHIPS()` work. The app tries `INFO.*` first, falls back to `INFO.VIEW.*`, and marks a section "not available for this model" (category, message, what was tried, Retry) when both fail. Both shapes are parsed (ids and numeric enums for `INFO.*`, names and text enums for `INFO.VIEW.*`); columns are matched by name with brackets stripped; `RowNumber-…` columns are excluded. |
+| Measure DAX | `INFO.VIEW.MEASURES` may return no expressions (`Expression` null for every measure). Tables & measures, the info panel and the Summary then say the DAX isn't exposed by the query API and show everything else; "uses" and "used by" are unknown without it. The offline demo models keep their DAX so the expression views can be shown. |
+| Model ids in the repo | None: `rayfin.yml` reads `${MODEL_WORKSPACE_ID}` / `${MODEL_ITEM_ID}` at `rayfin up`. |
 | Connector-only project | `services.data.enabled: false`, no `rayfin/data`. The shared runtime gets `fabric: { data: false }` so identity uses an in-memory store. |
 | Connectors under `rayfin dev` | Not wired (platform limit); verify after `rayfin up`. |
 
@@ -271,17 +271,6 @@ Known limits:
 - A diff between two models.
 - A model-wide unused-columns report (the info panel already shows each column's usage).
 - Calculation groups, perspectives and roles (RLS) in the summary.
-
-## 8. Gallery
-
-**Title:** 12 Days of Fabric Apps: Day [#] – [Theme]: Semantic Model Explainer
-
-**Blurb (60 words):** See your semantic model at a glance. Semantic Model Explainer reads a Power BI model through a
-Fabric connector and draws every table as a card with its keys, columns and measures, linked by animated relationships
-that show which way filters flow. Click anything for its DAX, relationships, usage and health findings; a printable
-summary shares it.
-
-**Tags:** Partner | 12 Days of Fabric Apps · Semantic model · Power BI · DAX · Data governance · Fabric Apps
 
 ## License
 
