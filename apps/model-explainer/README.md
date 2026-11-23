@@ -8,6 +8,29 @@ calls the Execute Queries REST API directly and stores nothing on a server.
 
 ![The Diagram screen: tables as cards with their keys, columns and measures, linked by relationships](docs/diagram.png)
 
+## About this fork
+
+This is a fork of [Semantic Model Explainer](https://github.com/mjtpena/fabric-app-model-explainer) by Michael John
+Peña, used under the MIT licence (the original copyright notice is kept in [LICENSE](../../LICENSE)). The metadata loading,
+connector setup, health rules and score, sample questions, deploy tooling and the shared runtime come from the
+original project.
+
+What changed in this fork:
+
+- **A new home screen.** The 3D solar-system view (three.js) is replaced by a diagram of table cards listing each
+  table's keys, columns and measures, with animated relationship links that show which way filters flow.
+- **An info panel.** Click any table, column, measure or relationship for its details, DAX, health findings and usage
+  (which measures use a column or another measure).
+- **No space theme.** Screens are renamed (Star chart → Relationships, Field guide → Tables & measures, Space weather
+  → Health, Probes → Sample questions, Mission brief → Summary); planet, star and moon wording, glyphs and lenses are
+  gone, and there is a new logo.
+- **Health.** The score ring leads, with indicator tiles for the numbers behind it and a checklist of every flagged
+  object to work through, ticked off per model in the browser.
+- **Summary.** Every measure with its description and DAX, relationships as sentences, and health alerts with their
+  advice; the Markdown export adds a Mermaid diagram.
+- **Removed:** the narrated demo walkthrough and video, and screenshots of the old design (new ones are in
+  `docs/`).
+
 ## Using the app
 
 ### Diagram (home)
@@ -219,13 +242,13 @@ before rendering. Names are always quoted (`'` doubled in table names, `]` doubl
 checked for balanced quoting before it runs. Nothing is persisted except the picked model and ticked checklist items,
 both in the viewer's localStorage.
 
-## 6. VERIFY outcomes and known limits
+## 6. Platform notes and known limits
 
-| VERIFY | Outcome |
+| Topic | Behaviour |
 |---|---|
-| DAX INFO functions through the connector | On the test tenant `INFO.TABLES()` / `INFO.MEASURES()` fail through the query API; `INFO.VIEW.TABLES/COLUMNS/MEASURES/RELATIONSHIPS()` work. The app tries `INFO.*` first, falls back to `INFO.VIEW.*`, and marks a section "not available for this model" (category, message, what was tried, Retry) when both fail. Both shapes are parsed (ids and numeric enums for `INFO.*`, names and text enums for `INFO.VIEW.*`); columns are matched by name with brackets stripped; `RowNumber-…` columns are excluded. |
-| Measure DAX | On this tenant `INFO.VIEW.MEASURES` returns no expressions (`Expression` is null for every measure), verified against the deployed X10 Retail Demo Model. Tables & measures, the info panel and the Summary then say the DAX isn't exposed by the query API and show everything else; "uses" and "used by" are unknown without it. The offline demo models keep their DAX so the expression views can be shown. |
-| Model ids in the repo | None: `rayfin.yml` reads `${MODEL_WORKSPACE_ID}` / `${MODEL_ITEM_ID}` at `rayfin up`. Deployed this way, the connector applied successfully. |
+| DAX INFO functions through the connector | `INFO.TABLES()` / `INFO.MEASURES()` can fail through the query API while `INFO.VIEW.TABLES/COLUMNS/MEASURES/RELATIONSHIPS()` work. The app tries `INFO.*` first, falls back to `INFO.VIEW.*`, and marks a section "not available for this model" (category, message, what was tried, Retry) when both fail. Both shapes are parsed (ids and numeric enums for `INFO.*`, names and text enums for `INFO.VIEW.*`); columns are matched by name with brackets stripped; `RowNumber-…` columns are excluded. |
+| Measure DAX | `INFO.VIEW.MEASURES` may return no expressions (`Expression` null for every measure). Tables & measures, the info panel and the Summary then say the DAX isn't exposed by the query API and show everything else; "uses" and "used by" are unknown without it. The offline demo models keep their DAX so the expression views can be shown. |
+| Model ids in the repo | None: `rayfin.yml` reads `${MODEL_WORKSPACE_ID}` / `${MODEL_ITEM_ID}` at `rayfin up`. |
 | Connector-only project | `services.data.enabled: false`, no `rayfin/data`. The shared runtime gets `fabric: { data: false }` so identity uses an in-memory store. |
 | Connectors under `rayfin dev` | Not wired (platform limit); verify after `rayfin up`. |
 
@@ -252,14 +275,3 @@ Known limits:
 - A diff between two models.
 - A model-wide unused-columns report (the info panel already shows each column's usage).
 - Calculation groups, perspectives and roles (RLS) in the summary.
-
-## 8. Gallery
-
-**Title:** 12 Days of Fabric Apps: Day [#] – [Theme]: Semantic Model Explainer
-
-**Blurb (60 words):** See your semantic model at a glance. Semantic Model Explainer reads a Power BI model through a
-Fabric connector and draws every table as a card with its keys, columns and measures, linked by animated relationships
-that show which way filters flow. Click anything for its DAX, relationships, usage and health findings; a printable
-summary shares it.
-
-**Tags:** Partner | 12 Days of Fabric Apps · Semantic model · Power BI · DAX · Data governance · Fabric Apps
