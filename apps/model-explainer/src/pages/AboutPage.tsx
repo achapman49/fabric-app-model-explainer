@@ -90,7 +90,7 @@ export function AboutPage() {
       <Block title="Privacy and access">
         <ul className="m-0 max-w-[68ch] list-disc space-y-1 pl-5 text-muted">
           <li>Queries run through the Fabric connector as the signed-in user, so people only see models they can already query.</li>
-          <li>Nothing is stored: the app has no database. Metadata stays in the browser tab while it is open.</li>
+          <li>Nothing is stored on a server: the app has no database. Metadata stays in the browser tab while it is open; ticked checklist items stay in this browser.</li>
           <li>Queries run when you open the app or ask for something (Count rows, Run). Results are capped.</li>
         </ul>
         {mode === 'demo' && <p className="m-0 mt-3 text-muted">Demo mode: the three models are fictional and answered by a built-in mock engine, so nothing leaves this browser.</p>}

@@ -37,8 +37,8 @@ tables sit in the centre column with their dimensions either side; tables with n
 - **Find** any table, column or measure by name; hover a table or key column to light up its links; switch hidden
   columns and measures off to see what report authors see. Drag to pan, scroll to zoom, `Esc` clears the focus.
 - **Other screens:** **Relationships** (compact diagram and the full list), **Tables & measures** (tables with columns
-  and row counts, measures with highlighted DAX), **Health** (the eight rules, the score ring and every finding, each
-  linked to the diagram), **Sample questions**, **Summary** (printable one-pager with a map, or Markdown).
+  and row counts, measures with highlighted DAX), **Health** (indicator tiles for the score, documentation coverage,
+  relationship risks and names, then a checklist of every flagged object to tick off, each linked to the diagram), **Sample questions**, **Summary** (printable one-pager with a map, or Markdown).
 - With reduced motion the dots stop and arrowheads show the direction.
 
 ## 1. Prerequisites
@@ -130,6 +130,7 @@ admin-only features, so no admin needs to be set.
 | Model picker, query client per model, metadata cache | `src/state/ModelContext.tsx`, `src/components/ModelBar.tsx` |
 | Metadata: `INFO.<X>()` then `INFO.VIEW.<X>()` per section, typed `ModelMetadata` | `src/domain/metadata.ts`, `src/domain/parse.ts`, `src/domain/types.ts` |
 | Health rules and score | `src/domain/findings.ts`, thresholds in `src/config/rules.ts` |
+| Health indicators and the action checklist; ticks per model in localStorage | `src/domain/checklist.ts`, `src/state/useChecklistTicks.ts` |
 | DAX builders (quote escaping) | `src/domain/dax.ts` |
 | Sample questions | `src/domain/questions.ts` |
 | Object ids, fact table detection and table roles | `src/domain/model.ts` |
@@ -149,8 +150,9 @@ live in memory.
 relationships, find, hidden fields switch) · Relationships (SVG diagram with pan and zoom by buttons, wheel, drag or
 keyboard; key; list alternative) · Tables & measures: Tables (grid, drawer with columns, on-demand
 `EVALUATE ROW("n", COUNTROWS('<table>'))`, Count all rows) and Measures (search, filters for missing description /
-format string, highlighted DAX with copy) · Health (score ring, rule board, findings by severity with Show in diagram,
-passed and skipped rules, the score calculation) · Sample questions (up to 6 numeric measures x 4 related text or date
+format string, highlighted DAX with copy) · Health (eight indicator tiles with status and meters, the score calculation,
+a checklist with one tickable item per flagged object grouped by rule with progress and Show in diagram, passed and
+skipped rules) · Sample questions (up to 6 numeric measures x 4 related text or date
 columns, `EVALUATE TOPN(20, SUMMARIZECOLUMNS('<table>'[<column>], "v", [<measure>]), [v], DESC)`, grid + bar chart) ·
 Summary (map, print, download .md, copy as Markdown). Earlier routes (`#/tables`, `#/health`, …) redirect to the new
 ones.
@@ -167,7 +169,7 @@ users only see models they can already query. Results are capped (metadata 20,00
 connector default 5,000), row counts and sample questions run only on a click (Count all rows batches 20 tables per
 query), and every `result.status` is checked before rendering. Names
 are always quoted (`'` doubled in table names, `]` doubled in brackets) and generated DAX is checked for balanced
-quoting before it runs. Nothing is persisted except the picked model in the viewer's localStorage.
+quoting before it runs. Nothing is persisted except the picked model and ticked checklist items, both in the viewer's localStorage.
 
 ## 6. VERIFY outcomes and known limits
 
