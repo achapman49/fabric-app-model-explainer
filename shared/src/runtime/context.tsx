@@ -24,6 +24,8 @@ export interface AppConfig<S extends { Person: Person; AppMarker: AppMarker }> {
   title: string;
   /** One-line description shown on the sign-in page. */
   tagline: string;
+  /** Short credit line shown in the footer after the title. Omit for none. */
+  credit?: string;
   defs: EntityDefs<S>;
   /** Fictional users for the offline demo mode. The first one is the default viewer. */
   personas: Persona[];

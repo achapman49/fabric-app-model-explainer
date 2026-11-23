@@ -486,13 +486,12 @@ export function AppShell({ children, wide, immersive }: { children: ReactNode; w
 }
 
 export function Footer() {
-  const title = useContext(AppCtx)?.config.title ?? null;
+  const config = useContext(AppCtx)?.config;
+  const line = [config?.title, config?.credit].filter(Boolean).join(' · ');
   return (
     <footer className="x-noprint border-t border-line">
       <div className="mx-auto flex max-w-[var(--content-max)] flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-4 text-xs text-faint sm:px-6">
-        <span>
-          {title ? `${title} · ` : ''}Built by Datachain Consulting for AI @Work
-        </span>
+        <span>{line}</span>
         <Link to="/about" className="text-faint hover:text-fg">
           About this app
         </Link>
