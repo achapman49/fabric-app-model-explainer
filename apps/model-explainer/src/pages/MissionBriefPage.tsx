@@ -1,4 +1,4 @@
-/** Mission brief: the printable one-pager (map, numbers, key measures with DAX, relationships, findings) and Markdown. */
+/** Summary: the printable one-pager (map, numbers, key measures with DAX, relationships, findings) and Markdown. */
 import { useMemo } from 'react';
 import { Download, FileText, Printer } from 'lucide-react';
 
@@ -8,11 +8,11 @@ import { Button, CopyButton } from '@x10/shared/ui';
 
 import { SeverityChip, ToolHeader, WithMetadata } from '../components/common';
 import { Dax } from '../components/Dax';
-import { SystemSchematic } from '../components/SystemSchematic';
+import { ModelMap } from '../components/ModelMap';
 import { evaluateHealth, SCORE_FORMULA, scoreLabel } from '../domain/findings';
 import { buildMarkdown, cardinalityLabel, crossFilterLabel, keyMeasures } from '../domain/markdown';
 import { EXPRESSIONS_HIDDEN_NOTE, expressionsHidden, hiddenObjectCount } from '../domain/metadata';
-import { buildOrrery } from '../domain/orrery';
+import { tableRoles } from '../domain/model';
 import { SECTION_LABELS, type ModelMetadata, type SectionKey } from '../domain/types';
 
 function slug(s: string): string {
@@ -28,15 +28,15 @@ function Brief({ meta }: { meta: ModelMetadata }) {
   const markdown = () => buildMarkdown(meta, health, new Date());
   const measures = keyMeasures(meta);
   const hiddenExpr = expressionsHidden(meta);
-  const orrery = useMemo(() => buildOrrery(meta), [meta]);
+  const roles = useMemo(() => tableRoles(meta), [meta]);
   const unavailable = (Object.keys(meta.sections) as SectionKey[]).filter((k) => !meta.sections[k].ok);
   const n = (k: SectionKey, v: number) => (meta.sections[k].ok ? v.toLocaleString() : 'n/a');
-  const stars = orrery.bodies.filter((b) => b.kind === 'sun').map((b) => b.name);
+  const facts = [...roles.entries()].filter(([, r]) => r === 'fact').map(([name]) => name);
   return (
     <>
       <ToolHeader
         icon={<FileText />}
-        tool="Mission brief"
+        tool="Summary"
         title="Share this model"
         actions={
           <>
@@ -54,11 +54,11 @@ function Brief({ meta }: { meta: ModelMetadata }) {
       <article className="x-onepager mx-auto max-w-[920px] rounded-2xl border border-line bg-surface p-6 shadow-1 md:p-10" data-testid="one-pager">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5">
           <div className="min-w-0">
-            <p className="x-legend-label m-0 text-muted">Mission brief · semantic model</p>
+            <p className="x-legend-label m-0 text-muted">Summary · semantic model</p>
             <h1 className="m-0 mt-2 font-serif text-4xl leading-tight font-normal tracking-[-0.01em] break-words">{meta.modelLabel}</h1>
             <p className="m-0 mt-2 text-sm text-muted">
               Generated {formatDate(new Date().toISOString())} by Semantic Model Explainer.
-              {stars.length > 0 && ` ${stars.length === 1 ? 'Star' : 'Stars'}: ${stars.join(', ')}.`}
+              {facts.length > 0 && ` ${facts.length === 1 ? 'Fact table' : 'Fact tables'}: ${facts.join(', ')}.`}
             </p>
             {unavailable.length > 0 && <p className="m-0 mt-2 text-sm">Not available for this model: {unavailable.map((k) => SECTION_LABELS[k]).join(', ')}.</p>}
           </div>
@@ -87,13 +87,13 @@ function Brief({ meta }: { meta: ModelMetadata }) {
           </p>
         </section>
 
-        {orrery.bodies.length > 0 && (
+        {roles.size > 0 && (
           <section className="mt-8 break-inside-avoid">
             <h2 className="x-legend-label m-0 mb-3 text-muted">Map</h2>
             <div className="rounded-xl border border-line bg-surface-sunken p-3">
-              <SystemSchematic orrery={orrery} className="block h-auto max-h-[460px] w-full" />
+              <ModelMap meta={meta} roles={roles} className="block h-auto max-h-[460px] w-full" />
             </div>
-            <p className="m-0 mt-2 text-xs text-muted">Stars are fact tables, planets dimensions, small dots measures; dashed lines are inactive relationships, double lines filter both ways.</p>
+            <p className="m-0 mt-2 text-xs text-muted">Tinted boxes are fact tables. Arrows point at the table being filtered (two arrowheads: both ways); dashed lines are inactive relationships.</p>
           </section>
         )}
 
