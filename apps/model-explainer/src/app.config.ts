@@ -21,6 +21,7 @@ export const config: AppConfig<Schema> = {
   appId: 'model-explainer',
   title: 'Semantic Model Explainer',
   tagline: 'Open a semantic model and understand it in two minutes.',
+  credit: 'A fork of the original by Michael John Peña (MIT)',
   accent: 'cyan',
   // Two tables joined by a relationship.
   logoPaths: ['M5 4h4a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z', 'M15 13h4a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z', 'M11 7.5c2.5 0-.5 9 2 9'],

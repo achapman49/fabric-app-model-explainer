@@ -95,7 +95,14 @@ export function AboutPage() {
         </ul>
         {mode === 'demo' && <p className="m-0 mt-3 text-muted">Demo mode: the three models are fictional and answered by a built-in mock engine, so nothing leaves this browser.</p>}
       </Block>
-      <p className="mt-2 text-xs text-muted">Built by Datachain Consulting for AI @Work. Runs on Microsoft Fabric Apps.</p>
+      <p className="mt-2 text-xs text-muted">
+        A fork of{' '}
+        <a href="https://github.com/mjtpena/fabric-app-model-explainer" target="_blank" rel="noreferrer" className="text-muted underline hover:text-fg">
+          Semantic Model Explainer
+        </a>{' '}
+        by Michael John Peña, used under the MIT licence, reworked with a table diagram and info panel, a health checklist and a fuller summary. Runs on
+        Microsoft Fabric Apps.
+      </p>
     </div>
   );
 }
