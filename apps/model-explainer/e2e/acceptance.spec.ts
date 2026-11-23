@@ -87,7 +87,7 @@ test('AC4: Copy as Markdown produces a complete one-pager', async ({ page, conte
   await expect(page.getByRole('button', { name: /Copied/ })).toBeVisible();
   const md = await page.evaluate(() => navigator.clipboard.readText());
   expect(md).toMatch(/^# Sample Sales Model/);
-  for (const part of ['## At a glance', '## Key measures', '### Total Sales', '```dax', '## Relationships', '## Health findings', 'Score 52/100']) {
+  for (const part of ['## At a glance', '## Diagram', '```mermaid', '## Relationships', '## Measures', '#### Total Sales', '```dax', '## Health alerts', 'Score 52/100']) {
     expect(md).toContain(part);
   }
   expect(md.match(/^- \*\*(Warning|Info): /gm)).toHaveLength(8);

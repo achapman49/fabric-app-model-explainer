@@ -23,7 +23,8 @@ tables sit in the centre column with their dimensions either side; tables with n
   columns and measures off to see what report authors see. Drag to pan, scroll to zoom, `Esc` clears the focus.
 - **Other screens:** **Relationships** (compact diagram and the full list), **Tables & measures** (tables with columns
   and row counts, measures with highlighted DAX), **Health** (the score in a ring as the headline, tiles for documentation
-  coverage, relationship risks, names and checklist progress, then a checklist of every flagged object to tick off, each linked to the diagram), **Sample questions**, **Summary** (printable one-pager with a map, or Markdown).
+  coverage, relationship risks, names and checklist progress, then a checklist of every flagged object to tick off, each linked to the diagram), **Sample questions**, **Summary** (printable one-pager: map, relationships, every measure with its description and DAX,
+  health alerts with advice; or Markdown with a Mermaid diagram).
 - With reduced motion the dots stop and arrowheads show the direction.
 
 ## 1. Prerequisites
@@ -125,7 +126,7 @@ admin-only features, so no admin needs to be set.
 | The diagram (HTML cards, SVG links with flowing dots, pan and zoom) and the info panel | `src/components/SchemaDiagram.tsx`, `src/components/InfoPanel.tsx`, `src/pages/DiagramPage.tsx` |
 | Compact relationship diagram and the Summary map (hand-written SVG, no graph library) | `src/domain/diagram.ts`, `src/components/StarChart.tsx`, `src/components/ModelMap.tsx` |
 | DAX highlighting | `src/domain/daxTokens.ts`, `src/components/Dax.tsx` |
-| One-pager Markdown | `src/domain/markdown.ts` |
+| Summary Markdown and its Mermaid diagram | `src/domain/markdown.ts`, `src/domain/mermaid.ts` |
 | Mock engine and fixture models | `src/mock/` |
 
 **Entities.** None owned by the app. `Person` and `AppMarker` exist only in `src/model.ts` for the shared runtime and
@@ -139,7 +140,8 @@ format string, highlighted DAX with copy) · Health (score ring with its status 
 a checklist with one tickable item per flagged object grouped by rule with progress and Show in diagram, passed and
 skipped rules) · Sample questions (up to 6 numeric measures x 4 related text or date
 columns, `EVALUATE TOPN(20, SUMMARIZECOLUMNS('<table>'[<column>], "v", [<measure>]), [v], DESC)`, grid + bar chart) ·
-Summary (map, print, download .md, copy as Markdown). Earlier routes (`#/tables`, `#/health`, …) redirect to the new
+Summary (map, relationships as sentences, every measure by table with description and DAX, health alerts with advice
+and affected objects; print, download .md or copy as Markdown, with a Mermaid diagram). Earlier routes (`#/tables`, `#/health`, …) redirect to the new
 ones.
 
 **Health rules.** Measures without a description (warning, more than 20% of visible measures) · Tables without a
