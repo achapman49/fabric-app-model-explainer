@@ -1,31 +1,31 @@
 /**
- * Space weather: the health findings mapped onto the objects they affect (flares on tables, moons and trails), measure
- * coverage, and the ranked "Today" list that flies the camera to the worst of it. Pure functions over ModelMetadata.
+ * Health findings mapped onto the objects they affect (tables, measures and relationships), measure coverage, and the
+ * ranked list of what to look at first. Pure functions over ModelMetadata.
  */
 import { RULES } from '../config/rules';
 import { unfriendlyReason, type HealthReport, type RuleId, type Severity } from './findings';
 import { isNumericMeasure } from './metadata';
-import { measureId, relId, tableId } from './orrery';
+import { measureId, relId, tableId } from './model';
 import type { MeasureInfo, ModelMetadata, RelationshipInfo } from './types';
 
-export interface Flare {
+export interface Issue {
   rule: RuleId;
   severity: Severity;
   /** Short reason, such as "No description" or "Column PROMO_NAME: underscore". */
   note: string;
 }
 
-export type FlareMap = Map<string, Flare[]>;
+export type IssueMap = Map<string, Issue[]>;
 
-function push(map: FlareMap, id: string, f: Flare) {
+function push(map: IssueMap, id: string, f: Issue) {
   const list = map.get(id);
   if (list) list.push(f);
   else map.set(id, [f]);
 }
 
 /** Every object a fired rule flags, keyed by object id (t:, m:, r:). Rules that did not fire add nothing. */
-export function flareMap(meta: ModelMetadata, report: HealthReport): FlareMap {
-  const map: FlareMap = new Map();
+export function issueMap(meta: ModelMetadata, report: HealthReport): IssueMap {
+  const map: IssueMap = new Map();
   const fired = new Map(report.findings.map((f) => [f.rule, f.severity]));
   const sev = (r: RuleId) => fired.get(r)!;
   if (fired.has('measures-no-description'))
@@ -61,17 +61,17 @@ export function flareMap(meta: ModelMetadata, report: HealthReport): FlareMap {
   return map;
 }
 
-export function worst(flares: Flare[] | undefined): Severity | null {
-  if (!flares?.length) return null;
-  return flares.some((f) => f.severity === 'warning') ? 'warning' : 'info';
+export function worst(issues: Issue[] | undefined): Severity | null {
+  if (!issues?.length) return null;
+  return issues.some((f) => f.severity === 'warning') ? 'warning' : 'info';
 }
 
-/** A table's weather: its own flares plus its measures' flares. */
-export function tableWeather(map: FlareMap, meta: ModelMetadata, table: string): { severity: Severity | null; count: number; flares: Flare[] } {
+/** A table's issues: its own plus its measures'. */
+export function tableIssues(map: IssueMap, meta: ModelMetadata, table: string): { severity: Severity | null; count: number; issues: Issue[] } {
   const own = map.get(tableId(table)) ?? [];
-  const fromMoons = meta.measures.filter((m) => m.table === table).flatMap((m) => map.get(measureId(m.table, m.name)) ?? []);
-  const all = [...own, ...fromMoons];
-  return { severity: worst(all), count: all.length, flares: all };
+  const fromMeasures = meta.measures.filter((m) => m.table === table).flatMap((m) => map.get(measureId(m.table, m.name)) ?? []);
+  const all = [...own, ...fromMeasures];
+  return { severity: worst(all), count: all.length, issues: all };
 }
 
 /* ------------------------------------------------------------------ measure coverage */
@@ -101,11 +101,9 @@ export function tableCoverage(meta: ModelMetadata, table: string, includeHidden 
   return list.filter((m) => measureCoverage(m) === 'complete').length / list.length;
 }
 
-/* ------------------------------------------------------------------ today */
+/* ------------------------------------------------------------------ top issues */
 
-export type LensKey = 'weather' | 'size' | 'hidden' | 'coverage';
-
-export interface TodayEntry {
+export interface TopIssue {
   id: string;
   /** Object to focus: t:, m: or r:. */
   focus: string;
@@ -113,7 +111,6 @@ export interface TodayEntry {
   severity: 'warn' | 'info';
   value: number;
   unit: string;
-  lens: LensKey;
   meta: string;
 }
 
@@ -131,8 +128,8 @@ function busiest(ids: string[], key: (id: string) => string): string | null {
  * The three to five things worth looking at now: one per fired rule, warnings first, each pointing at the object
  * that shows the problem best.
  */
-export function todayEntries(meta: ModelMetadata, report: HealthReport, max = 5): TodayEntry[] {
-  const out: TodayEntry[] = [];
+export function topIssues(meta: ModelMetadata, report: HealthReport, max = 5): TopIssue[] {
+  const out: TopIssue[] = [];
   const tone = (s: Severity) => (s === 'warning' ? 'warn' : 'info') as 'warn' | 'info';
   for (const f of report.findings) {
     switch (f.rule) {
@@ -151,7 +148,6 @@ export function todayEntries(meta: ModelMetadata, report: HealthReport, max = 5)
           severity: tone(f.severity),
           value: missing.length,
           unit: f.rule === 'measures-no-description' ? 'undescribed' : 'unformatted',
-          lens: 'coverage',
           meta: `${n} on ${table}`,
         });
         break;
@@ -172,7 +168,6 @@ export function todayEntries(meta: ModelMetadata, report: HealthReport, max = 5)
           severity: tone(f.severity),
           value: f.objects.length,
           unit: f.objects.length === 1 ? 'relationship' : 'relationships',
-          lens: 'weather',
           meta: `${r.fromColumn} to ${r.toColumn}`,
         });
         break;
@@ -187,13 +182,12 @@ export function todayEntries(meta: ModelMetadata, report: HealthReport, max = 5)
           severity: tone(f.severity),
           value: f.objects.length,
           unit: f.objects.length === 1 ? 'table' : 'tables',
-          lens: 'weather',
           meta: t.name,
         });
         break;
       }
       case 'unfriendly-names': {
-        const map = flareMap(meta, report);
+        const map = issueMap(meta, report);
         const tables = [...map.entries()]
           .filter(([, fl]) => fl.some((x) => x.rule === 'unfriendly-names'))
           .map(([id]) => (id.startsWith('m:') ? tableId(id.slice(2, id.indexOf('|'))) : id));
@@ -206,7 +200,6 @@ export function todayEntries(meta: ModelMetadata, report: HealthReport, max = 5)
           severity: tone(f.severity),
           value: f.objects.length,
           unit: 'names',
-          lens: 'weather',
           meta: `Most on ${focus.slice(2)}`,
         });
         break;
@@ -221,7 +214,6 @@ export function todayEntries(meta: ModelMetadata, report: HealthReport, max = 5)
           severity: tone(f.severity),
           value: t.columnCount ?? 0,
           unit: 'columns',
-          lens: 'size',
           meta: `More than ${RULES.wideTableColumns} columns`,
         });
         break;

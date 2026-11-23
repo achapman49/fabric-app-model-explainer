@@ -4,33 +4,33 @@ import { tokenizeDax } from './daxTokens';
 import { countAllRowsQuery } from './dax';
 import { evaluateHealth } from './findings';
 import { countAllRows } from './queries';
-import { flareMap, measureCoverage, tableCoverage, tableWeather, todayEntries } from './weather';
+import { issueMap, measureCoverage, tableCoverage, tableIssues, topIssues } from './issues';
 
-describe('space weather', () => {
+describe('health issues', () => {
   it('puts every finding on the objects it affects', async () => {
     const meta = await loadMock();
-    const map = flareMap(meta, evaluateHealth(meta));
+    const map = issueMap(meta, evaluateHealth(meta));
     expect(map.get('t:dim_Promo_TBL')!.map((f) => f.rule).sort()).toEqual(['tables-no-description', 'unfriendly-names', 'unfriendly-names', 'unfriendly-names', 'unfriendly-names']);
     expect(map.get('t:Store Survey')!.map((f) => f.rule)).toEqual(['wide-tables']);
     expect(map.get('m:Sales|Gross Margin')!.map((f) => f.rule).sort()).toEqual(['measures-no-description', 'measures-no-format']);
     const rels = [...map.keys()].filter((k) => k.startsWith('r:'));
     expect(rels).toHaveLength(3);
-    expect(tableWeather(map, meta, 'Sales').severity).toBe('warning');
-    expect(tableWeather(map, meta, 'Customer').severity).toBeNull();
+    expect(tableIssues(map, meta, 'Sales').severity).toBe('warning');
+    expect(tableIssues(map, meta, 'Customer').severity).toBeNull();
   });
 
   it('ranks today: warnings first, at most five, each pointing at an object', async () => {
     const meta = await loadMock();
-    const today = todayEntries(meta, evaluateHealth(meta));
+    const today = topIssues(meta, evaluateHealth(meta));
     expect(today).toHaveLength(5);
     expect(today.slice(0, 4).every((t) => t.severity === 'warn')).toBe(true);
     expect(today.find((t) => t.id === 'bidirectional')!.focus).toMatch(/^r:\d+$/);
-    expect(today.find((t) => t.id === 'measures-no-description')).toMatchObject({ focus: 't:Sales', value: 6, lens: 'coverage' });
+    expect(today.find((t) => t.id === 'measures-no-description')).toMatchObject({ focus: 't:Sales', value: 6 });
   });
 
   it('has nothing for a model without findings to show', async () => {
     const meta = await loadMock(operationsModel);
-    const today = todayEntries(meta, evaluateHealth(meta));
+    const today = topIssues(meta, evaluateHealth(meta));
     expect(today.every((t) => t.severity === 'info')).toBe(true);
   });
 
