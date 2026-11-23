@@ -5,31 +5,26 @@ which measures exist and how they are written, eight health checks with a score,
 run. It is a read-only Fabric App (Rayfin 2.0) that reads model metadata through a semantic model connector, so it never
 calls the Execute Queries REST API directly and stores nothing.
 
-![Screenshot](docs/screenshot.png)
-
 ## What it looks like
 
-The home screen draws the model as a solar system you can fly around (three.js, loaded on demand): fact tables are
-stars, dimensions are planets on orbits set by their relationships, measures are moons around their home table, and
-every relationship is a trail (solid when active, dashed when inactive, twin trails when it filters both ways, with
-particles flowing toward the table being filtered). Hidden objects are ghosts, tables shared by two facts sit between
-the stars, and tables with no relationships drift in a belt.
+The home screen is a diagram of the model. Every table is a card listing its relationship keys first, then its
+columns (with type) and measures; long tables show the first few and a "Show N more" link. Relationships run from the
+key column on one card to the key column on the other, with dots flowing the way filters travel (from the one side to
+the many side; both ways when the relationship filters both ways). Inactive relationships are dashed and still. Fact
+tables sit in the centre column with their dimensions either side; tables with no relationships sit in a grid below.
 
-- **Lenses** (keys 1–4): **Weather** (health findings as flares on the tables, moons and trails they affect),
-  **Size** (row counts from one batched COUNTROWS query; bigger planet, more rows), **Hidden** (hidden tables and an arc
-  for the share of hidden columns), **Coverage** (moons coloured by description and format string).
-- **Today** ranks up to five findings; each one flies the camera to the table, measure or relationship behind it and
-  switches to its lens. **View as** (key V) switches between the modeller's sky and the report author's (hidden objects
-  removed). Fly to any table or measure by name (`/`), `Esc` returns to the whole sky, `?` lists the shortcuts.
-- **Tools:** **Star chart** (the 2D relationship diagram and list), **Field guide** (tables with columns and row counts,
-  measures with highlighted DAX), **Space weather** (the eight rules, the score ring and every finding, each one click
-  from the sky), **Probes** (sample questions), **Mission brief** (printable one-pager with a map, or Markdown).
-- **Fallbacks:** the List view holds the same data as an accessible table; without WebGL (or with `?nowebgl`) the sky
-  becomes the flat star chart with the same lenses; with reduced motion the orbits stop and the camera jumps.
-
-Screens at 1280 and 390 px, light and dark: [docs/redesign/](docs/redesign/).
-
-Demo video (about 2 minutes, AI-generated narration, captions burned in): [demo/out/model-explainer.mp4](demo/out/model-explainer.mp4) · captions file [demo/out/model-explainer.srt](demo/out/model-explainer.srt). Re-record with `npx tsx tools/demo/record.ts model-explainer` from the repo root.
+- **Info panel:** click a table, a column, a measure or a relationship line to read about it. Tables show their role,
+  description, counts, row count on demand, health findings, relationships and measures. Columns show data type, kind,
+  format, the relationships they key and the measures that use them. Measures show their DAX (with copy), format,
+  findings, what they use and what uses them. Relationships explain in words which table filters which, and on what.
+  Everything in the panel links onward, and the focus is in the URL (`#/?focus=t:Sales`, `c:Sales|Customer Key`,
+  `m:Sales|Total Sales`, `r:<index>`), so other screens link straight to it.
+- **Find** any table, column or measure by name; hover a table or key column to light up its links; switch hidden
+  columns and measures off to see what report authors see. Drag to pan, scroll to zoom, `Esc` clears the focus.
+- **Other screens:** **Relationships** (compact diagram and the full list), **Tables & measures** (tables with columns
+  and row counts, measures with highlighted DAX), **Health** (the eight rules, the score ring and every finding, each
+  linked to the diagram), **Sample questions**, **Summary** (printable one-pager with a map, or Markdown).
+- With reduced motion the dots stop and arrowheads show the direction.
 
 ## 1. Prerequisites
 
@@ -54,12 +49,11 @@ The demo serves three fictional models through `MockModelClient`, so no tenant i
 | Demo model | What it shows |
 |---|---|
 | Sample Sales Model | 9 tables, 14 measures, 8 relationships; every health rule fires once (score 52). Names with spaces, an apostrophe (`Manager's Targets`) and brackets (`Size [cm]`, `Sales [Prior Year]`). |
-| Sample Operations Model | 43 tables, no measures: four star systems (two joined by a shared Region) and a belt of 8 loose tables; Probes explains why there is nothing to ask. |
+| Sample Operations Model | 43 tables, no measures: several star schemas (two joined by a shared Region) and 8 unrelated tables; Sample questions explains why there is nothing to ask. |
 | Sample Finance Model | Measure and relationship metadata blocked (403): those sections degrade, the rest keeps working. |
 
-Tests: `npx vitest run` (92 unit tests) and `npx playwright test` (smoke, acceptance and the sky at 390 px and 1280 px,
-and a dry run of the narrated walkthrough). Playwright runs Chromium with software WebGL (SwiftShader) so the 3D sky
-renders headless.
+Tests: `npx vitest run` (unit tests for the domain logic, including the diagram layout) and `npx playwright test`
+(smoke and acceptance at 390 px and 1280 px).
 
 ## 3. Deploy
 
@@ -123,10 +117,12 @@ admin-only features, so no admin needs to be set.
 | Health rules and score | `src/domain/findings.ts`, thresholds in `src/config/rules.ts` |
 | DAX builders (quote escaping) | `src/domain/dax.ts` |
 | Sample questions | `src/domain/questions.ts` |
-| Solar system layout (stars, planets, shared bodies, belt, moons, trails; positions as a function of time) | `src/domain/orrery.ts` |
-| Findings mapped to objects (flares), measure coverage, the ranked Today list | `src/domain/weather.ts` |
-| The 3D sky (three.js, lazy-loaded), lens encodings, procedural textures | `src/orrery/scene.ts`, `src/orrery/OrreryCanvas.tsx`, `src/orrery/look.ts`, `src/orrery/textures.ts` |
-| Star chart layout (hand-written SVG, no graph library) | `src/domain/diagram.ts`, `src/components/StarChart.tsx` |
+| Object ids, fact table detection and table roles | `src/domain/model.ts` |
+| Diagram layout (cards with rows, columns either side of the facts, links between key rows) | `src/domain/schema.ts` |
+| Findings mapped to objects, measure coverage, the ranked top issues | `src/domain/issues.ts` |
+| Which measures use a column or measure (DAX text scan) | `src/domain/usage.ts` |
+| The diagram (HTML cards, SVG links with flowing dots, pan and zoom) and the info panel | `src/components/SchemaDiagram.tsx`, `src/components/InfoPanel.tsx`, `src/pages/DiagramPage.tsx` |
+| Compact relationship diagram and the Summary map (hand-written SVG, no graph library) | `src/domain/diagram.ts`, `src/components/StarChart.tsx`, `src/components/ModelMap.tsx` |
 | DAX highlighting | `src/domain/daxTokens.ts`, `src/components/Dax.tsx` |
 | One-pager Markdown | `src/domain/markdown.ts` |
 | Mock engine and fixture models | `src/mock/` |
@@ -134,14 +130,15 @@ admin-only features, so no admin needs to be set.
 **Entities.** None owned by the app. `Person` and `AppMarker` exist only in `src/model.ts` for the shared runtime and
 live in memory.
 
-**Screens.** Sky (the solar system, lenses, Today, view as, fly to, list view) · Star chart (SVG diagram with pan and
-zoom by buttons, wheel, drag or keyboard; key; list alternative) · Field guide: Tables (grid, drawer with columns,
-on-demand `EVALUATE ROW("n", COUNTROWS('<table>'))`, Count all rows) and Measures (search, filters for missing
-description / format string, highlighted DAX with copy) · Space weather (score ring, rule board, findings by severity
-with Show in the sky, passed and skipped rules, the score calculation) · Probes (up to 6 numeric measures x 4 related
-text or date columns, `EVALUATE TOPN(20, SUMMARIZECOLUMNS('<table>'[<column>], "v", [<measure>]), [v], DESC)`, grid +
-bar chart) · Mission brief (map, print, download .md, copy as Markdown). Earlier routes (`#/tables`, `#/health`, …)
-redirect to the new ones.
+**Screens.** Diagram (table cards, animated relationship links, info panel for tables, columns, measures and
+relationships, find, hidden fields switch) · Relationships (SVG diagram with pan and zoom by buttons, wheel, drag or
+keyboard; key; list alternative) · Tables & measures: Tables (grid, drawer with columns, on-demand
+`EVALUATE ROW("n", COUNTROWS('<table>'))`, Count all rows) and Measures (search, filters for missing description /
+format string, highlighted DAX with copy) · Health (score ring, rule board, findings by severity with Show in diagram,
+passed and skipped rules, the score calculation) · Sample questions (up to 6 numeric measures x 4 related text or date
+columns, `EVALUATE TOPN(20, SUMMARIZECOLUMNS('<table>'[<column>], "v", [<measure>]), [v], DESC)`, grid + bar chart) ·
+Summary (map, print, download .md, copy as Markdown). Earlier routes (`#/tables`, `#/health`, …) redirect to the new
+ones.
 
 **Health rules.** Measures without a description (warning, more than 20% of visible measures) · Tables without a
 description (info, any visible table) · Measures without a format string (warning, numeric measures by DataType: Number,
@@ -151,8 +148,9 @@ tbl/dim, or all caps of 4+ letters) · Large wide tables (info, more than 40 col
 most 50) − 2 per info (at most 20)**; each rule counts once. Rules whose metadata is unavailable are skipped and listed.
 
 **Security model.** Read-only. Every query goes through `client.connectors.<name>.executeQuery` with delegated auth, so
-users only see models they can already query. Results are capped (metadata 20,000 rows, Probes 100 rows, connector
-default 5,000), row counts and Probes run only on a click (choosing the Size lens counts rows, 20 tables per query), and every `result.status` is checked before rendering. Names
+users only see models they can already query. Results are capped (metadata 20,000 rows, sample questions 100 rows,
+connector default 5,000), row counts and sample questions run only on a click (Count all rows batches 20 tables per
+query), and every `result.status` is checked before rendering. Names
 are always quoted (`'` doubled in table names, `]` doubled in brackets) and generated DAX is checked for balanced
 quoting before it runs. Nothing is persisted except the picked model in the viewer's localStorage.
 
@@ -172,11 +170,11 @@ Known limits:
   `INFO.VIEW.RELATIONSHIPS` does not say which way they filter.
 - When a measure's DataType is missing, "numeric" is inferred from the DAX (FORMAT/CONCATENATE/string literal = text).
 - Sample questions only follow active relationships; questions over a many-to-many relationship may return repeated totals.
-- The model picker is the stage title on the Sky and a caption above every tool's title (the shared AppShell has no
-  header slot).
-- The shared nav is static, so for models with nothing to ask (no measures) the Probes link is hidden with CSS; opening
-  `#/probes` directly still explains why there are no questions.
-- The 3D sky needs WebGL; without it the Sky shows the star chart with the same lenses, Today and list.
+- The model picker is the title of the diagram's panel and a caption above every other screen's title (the shared
+  AppShell has no header slot).
+- The shared nav is static, so for models with nothing to ask (no measures) the Sample questions link is hidden with
+  CSS; opening `#/probes` directly still explains why there are no questions.
+- "Used by" in the info panel is a text scan of measure DAX, not a parser: references inside comments or strings count.
 - The Fabric build embeds the Rayfin API URL (it contains the tenant and workspace ids) and the publishable key in the JS
   bundle, as every Rayfin app does. They are not secrets: the backend still requires a Fabric sign-in and checks access.
   The semantic model's ids are not in the bundle (they stay server-side in the connector configuration).
@@ -192,9 +190,9 @@ Known limits:
 
 **Title:** 12 Days of Fabric Apps: Day [#] – [Theme]: Semantic Model Explainer
 
-**Blurb (60 words):** Fly around your semantic model. Semantic Model Explainer reads a Power BI model through a Fabric
-connector and draws it as a solar system: fact tables are stars, dimensions planets, measures moons, relationships
-trails. Lenses show health findings as space weather, row counts, hidden objects and documentation. A Today list flies
-you to what to fix first; a printable mission brief shares it.
+**Blurb (60 words):** See your semantic model at a glance. Semantic Model Explainer reads a Power BI model through a
+Fabric connector and draws every table as a card with its keys, columns and measures, linked by animated relationships
+that show which way filters flow. Click anything for its DAX, relationships, usage and health findings; a printable
+summary shares it.
 
 **Tags:** Partner | 12 Days of Fabric Apps · Semantic model · Power BI · DAX · Data governance · Fabric Apps
