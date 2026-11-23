@@ -5,7 +5,10 @@
   "description": "Semantic Model Explainer: Open a semantic model and understand it in two minutes. A Microsoft Fabric App (Rayfin).",
   "type": "module",
   "license": "MIT",
-  "author": "Michael John Peña",
+  "author": "achapman49",
+  "contributors": [
+    "Michael John Peña (original author)"
+  ],
   "workspaces": [
     "shared",
     "apps/model-explainer"
