@@ -1,10 +1,9 @@
-/** Probes: ready-made questions sent into the model (a TOPN query each), answered as a bar chart and a grid. */
+/** Sample questions: ready-made questions sent into the model (a TOPN query each), answered as a bar chart and a grid. */
 import { useState } from 'react';
-import { Rocket } from 'lucide-react';
+import { MessagesSquare, Play, Sigma } from 'lucide-react';
 
 import { Button, EmptyState, ErrorPanel, LinkButton, LoadingBlock, Table, TableWrap, Td, Th } from '@x10/shared/ui';
 
-import { BodyGlyph } from '../components/BodyGlyph';
 import { ToolHeader, WithMetadata } from '../components/common';
 import { Dax } from '../components/Dax';
 import { ResultBarChart } from '../components/ResultBarChart';
@@ -27,20 +26,20 @@ function Probes({ meta }: { meta: ModelMetadata }) {
   return (
     <>
       <ToolHeader
-        icon={<Rocket />}
-        tool="Probes"
+        icon={<MessagesSquare />}
+        tool="Sample questions"
         title="Sample questions"
         meta={!reason && <span className="num">{total} questions · top {QUESTIONS.topN} each · run on a click, with your permissions</span>}
       />
       {reason ? (
-        <EmptyState title="No probes to launch for this model" icon={<Rocket />} action={<LinkButton to="/field-guide?tab=measures">Open the Field guide</LinkButton>}>
+        <EmptyState title="No sample questions for this model" icon={<MessagesSquare />} action={<LinkButton to="/field-guide?tab=measures">Open Tables &amp; measures</LinkButton>}>
           <span data-testid="no-questions-reason">{reason}</span>
         </EmptyState>
       ) : (
         groups.map((g) => (
           <section key={`${g.measure.table}|${g.measure.name}`} className="mb-10" aria-labelledby={`p-${g.measure.name}`}>
             <div className="mb-1 flex items-center gap-2">
-              <BodyGlyph kind="moon" color="var(--accent-9)" size={14} />
+              <Sigma className="size-4 shrink-0 text-[var(--accent-11)]" aria-hidden="true" />
               <h2 id={`p-${g.measure.name}`} className="m-0 text-base font-semibold">
                 {g.measure.name}
               </h2>
@@ -75,7 +74,7 @@ function QuestionRow({ q }: { q: SampleQuestion }) {
             {q.column.name} comes from {q.column.table} ({q.column.dataType.toLowerCase()} column)
           </p>
         </div>
-        <Button variant="secondary" size="sm" busy={state?.running} onClick={run} aria-label={`Run: ${q.text}`} icon={<Rocket aria-hidden="true" />}>
+        <Button variant="secondary" size="sm" busy={state?.running} onClick={run} aria-label={`Run: ${q.text}`} icon={<Play aria-hidden="true" />}>
           {state && !state.running ? 'Run again' : 'Run'}
         </Button>
       </div>

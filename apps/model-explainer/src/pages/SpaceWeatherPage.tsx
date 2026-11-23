@@ -1,12 +1,12 @@
-/** Space weather: the eight health rules, the score as a ring, and every finding with a way to fly to it. */
-import { CloudSun, Orbit } from 'lucide-react';
+/** Health: the eight health rules, the score as a ring, and every finding with a link to it in the diagram. */
+import { HeartPulse, Network } from 'lucide-react';
 
 import { Badge, cx, EmptyState, LinkButton, ProgressRing } from '@x10/shared/ui';
 
 import { SeverityChip, ToolHeader, WithMetadata } from '../components/common';
 import { RULES } from '../config/rules';
 import { evaluateHealth, RULE_DEFS, SCORE_FORMULA, scoreLabel, scoreTone, type Finding, type HealthReport, type RuleId, type Severity } from '../domain/findings';
-import { todayEntries } from '../domain/weather';
+import { topIssues } from '../domain/issues';
 import { SECTION_LABELS, type ModelMetadata } from '../domain/types';
 
 const MAX_OBJECTS = 12;
@@ -36,7 +36,7 @@ const STATE_LABEL: Record<RuleState, string> = { warning: 'Warning', info: 'Info
 function Weather({ meta }: { meta: ModelMetadata }) {
   const h = evaluateHealth(meta);
   const tone = scoreTone(h.score);
-  const focusFor = new Map(todayEntries(meta, h, 99).map((e) => [e.id, e]));
+  const focusFor = new Map(topIssues(meta, h, 99).map((e) => [e.id, e]));
   const groups: { severity: Severity; title: string; points: string }[] = [
     { severity: 'warning', title: 'Warnings', points: `−${S.perWarning} each, at most −${S.warningCap}` },
     { severity: 'info', title: 'Info', points: `−${S.perInfo} each, at most −${S.infoCap}` },
@@ -46,7 +46,7 @@ function Weather({ meta }: { meta: ModelMetadata }) {
 
   return (
     <>
-      <ToolHeader icon={<CloudSun />} tool="Space weather" title="Health findings" />
+      <ToolHeader icon={<HeartPulse />} tool="Health" title="Health findings" />
 
       <section className="mb-10 grid items-center gap-x-10 gap-y-6 border-b border-line pb-8 md:grid-cols-[auto_minmax(0,1fr)]" aria-label="Score">
         <div className="flex items-center gap-5">
@@ -99,7 +99,7 @@ function Weather({ meta }: { meta: ModelMetadata }) {
       )}
 
       {h.findings.length === 0 && (
-        <EmptyState title="Clear skies" icon={<CloudSun />}>
+        <EmptyState title="All checks passed" icon={<HeartPulse />}>
           Every rule that could run passed.
         </EmptyState>
       )}
@@ -117,7 +117,7 @@ function Weather({ meta }: { meta: ModelMetadata }) {
             </div>
             <ul className="m-0 list-none divide-y divide-[var(--line)] border-y border-line p-0">
               {list.map((f) => (
-                <FindingRow key={f.rule} f={f} focus={focusFor.get(f.rule)?.focus} lens={focusFor.get(f.rule)?.lens} />
+                <FindingRow key={f.rule} f={f} focus={focusFor.get(f.rule)?.focus} />
               ))}
             </ul>
           </section>
@@ -146,10 +146,10 @@ function Weather({ meta }: { meta: ModelMetadata }) {
   );
 }
 
-function FindingRow({ f, focus, lens }: { f: Finding; focus?: string; lens?: string }) {
+function FindingRow({ f, focus }: { f: Finding; focus?: string }) {
   const def = RULE_DEFS.find((r) => r.id === f.rule)!;
   const shown = f.objects.slice(0, MAX_OBJECTS);
-  const href = focus ? `/?focus=${encodeURIComponent(focus)}${lens && lens !== 'weather' ? `&lens=${lens}` : ''}` : '/';
+  const href = focus ? `/?focus=${encodeURIComponent(focus)}` : '/';
   return (
     <li className="grid gap-x-8 gap-y-3 py-5 md:grid-cols-[minmax(0,1fr)_auto]" data-testid={`finding-${f.rule}`}>
       <div className="min-w-0">
@@ -175,8 +175,8 @@ function FindingRow({ f, focus, lens }: { f: Finding; focus?: string; lens?: str
         <p className="m-0 mt-2 text-xs text-faint">Rule: {def.condition}</p>
       </div>
       <div className="md:pt-0.5">
-        <LinkButton size="sm" to={href} icon={<Orbit aria-hidden="true" />}>
-          Show in the sky
+        <LinkButton size="sm" to={href} icon={<Network aria-hidden="true" />}>
+          Show in diagram
         </LinkButton>
       </div>
     </li>

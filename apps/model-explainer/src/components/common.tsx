@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
-import { ChevronDown, RefreshCw, Telescope } from 'lucide-react';
+import { ChevronDown, Database, RefreshCw } from 'lucide-react';
 
 import { formatRelative } from '@x10/shared/lib';
 import { Badge, Button, Chip, cx, DataState, IconButton, Skeleton, type Tone } from '@x10/shared/ui';
@@ -164,7 +164,7 @@ export function ReloadButton({ size = 'sm' }: { size?: 'sm' | 'md' }) {
 
 /**
  * Header for every tool page: the tool's name in the metaphor, the model picker, what loaded and when, reload.
- * Hides the Probes nav link while the current model has nothing to ask (the shell nav is static).
+ * Hides the Sample questions nav link while the current model has nothing to ask (the shell nav is static).
  */
 export function ToolHeader({
   icon,
@@ -190,7 +190,7 @@ export function ToolHeader({
           <span aria-hidden="true" className="text-faint">
             /
           </span>
-          <Telescope aria-hidden="true" className="size-3.5 shrink-0 text-faint" />
+          <Database aria-hidden="true" className="size-3.5 shrink-0 text-faint" />
           <ModelSelect />
         </div>
         <h1 className="m-0 text-xl font-semibold break-words md:text-2xl">{title}</h1>
@@ -209,7 +209,7 @@ export function ToolHeader({
   );
 }
 
-/** Hides the Probes tab while the current model has no sample questions (the shell nav is static). */
+/** Hides the Sample questions tab while the current model has no sample questions (the shell nav is static). */
 export function NavGuard() {
   const { metadata } = useModel();
   const meta = metadata.data;

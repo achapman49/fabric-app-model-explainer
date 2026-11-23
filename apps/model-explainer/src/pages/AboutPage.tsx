@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BookOpen, CloudSun, FileText, Map as MapIcon, Orbit, Rocket } from 'lucide-react';
+import { BookOpen, FileText, GitFork, HeartPulse, MessagesSquare, Network } from 'lucide-react';
 
 import { useApp } from '@x10/shared/runtime';
 import { PageHeader } from '@x10/shared/ui';
@@ -9,12 +9,12 @@ import { QUESTIONS, RULES, TRY_ROW_LIMIT } from '../config/rules';
 import { RULE_DEFS, SCORE_FORMULA } from '../domain/findings';
 
 const TOOLS: { icon: ReactNode; name: string; text: string }[] = [
-  { icon: <Orbit />, name: 'Sky', text: 'The model as a solar system. Fact tables are stars, dimensions planets, measures moons, relationships trails. Four lenses: weather, size, hidden, coverage.' },
-  { icon: <MapIcon />, name: 'Star chart', text: 'The same relationships as a flat diagram with arrows and cardinality, plus the list. It is also the sky when 3D is not available.' },
-  { icon: <BookOpen />, name: 'Field guide', text: 'Every table with its columns and row count on demand, and every measure with its DAX.' },
-  { icon: <CloudSun />, name: 'Space weather', text: 'Eight health rules, the score and every finding, each one a click from the sky.' },
-  { icon: <Rocket />, name: 'Probes', text: `Sample questions for up to ${QUESTIONS.maxMeasures} measures, each a TOPN(${QUESTIONS.topN}) query you run on a click.` },
-  { icon: <FileText />, name: 'Mission brief', text: 'A printable one-pager, also as Markdown for a wiki or a pull request.' },
+  { icon: <Network />, name: 'Diagram', text: 'Every table as a card with its keys, columns and measures. Relationships link the key columns, with dots flowing the way filters travel; dashed links are inactive. Select a table to list every field and read its relationships in words.' },
+  { icon: <GitFork />, name: 'Relationships', text: 'Tables only, as a compact diagram with arrows and cardinality, plus the full relationship list.' },
+  { icon: <BookOpen />, name: 'Tables & measures', text: 'Every table with its columns and row count on demand, and every measure with its DAX.' },
+  { icon: <HeartPulse />, name: 'Health', text: 'Eight health rules, the score and every finding, each one a click from the diagram.' },
+  { icon: <MessagesSquare />, name: 'Sample questions', text: `Sample questions for up to ${QUESTIONS.maxMeasures} measures, each a TOPN(${QUESTIONS.topN}) query you run on a click.` },
+  { icon: <FileText />, name: 'Summary', text: 'A printable one-pager, also as Markdown for a wiki or a pull request.' },
 ];
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
@@ -71,7 +71,7 @@ export function AboutPage() {
             ['All-caps names need at least', `${RULES.allCapsMinLetters} letters`],
             ['Sample measures', `up to ${QUESTIONS.maxMeasures}`],
             ['Columns per measure', `up to ${QUESTIONS.maxColumns}`],
-            ['Probe row guard', `${TRY_ROW_LIMIT} rows`],
+            ['Sample question row guard', `${TRY_ROW_LIMIT} rows`],
           ].map(([k, v]) => (
             <div key={k} className="contents">
               <dt className="text-muted">{k}</dt>
@@ -84,14 +84,14 @@ export function AboutPage() {
         <p className="m-0 max-w-[68ch] text-muted">
           Each section tries the DAX <code className="x-mono text-fg">INFO.TABLES()</code> family first, then <code className="x-mono text-fg">INFO.VIEW.TABLES()</code>. If
           neither works, that section says it is not available and the rest keeps working. Some models do not return measure DAX through the query API; the app says so and
-          shows everything else. Row counts (the Size lens and Count rows) run one batched COUNTROWS query per 20 tables, only when asked.
+          shows everything else. Row counts run only when asked: one COUNTROWS query for a single table, or one batched query per 20 tables for Count all rows.
         </p>
       </Block>
       <Block title="Privacy and access">
         <ul className="m-0 max-w-[68ch] list-disc space-y-1 pl-5 text-muted">
           <li>Queries run through the Fabric connector as the signed-in user, so people only see models they can already query.</li>
           <li>Nothing is stored: the app has no database. Metadata stays in the browser tab while it is open.</li>
-          <li>Queries run when you open the app or ask for something (Size lens, Count rows, Run). Results are capped.</li>
+          <li>Queries run when you open the app or ask for something (Count rows, Run). Results are capped.</li>
         </ul>
         {mode === 'demo' && <p className="m-0 mt-3 text-muted">Demo mode: the three models are fictional and answered by a built-in mock engine, so nothing leaves this browser.</p>}
       </Block>

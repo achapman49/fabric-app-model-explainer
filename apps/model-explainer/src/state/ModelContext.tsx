@@ -14,7 +14,7 @@ import { countAllRows } from '../domain/queries';
 import type { ModelMetadata } from '../domain/types';
 import { MOCK_MODELS, mockClient } from '../mock/engine';
 
-/** Row counts per table ("weighing" the planets), loaded on demand and cached per model. */
+/** Row counts per table, loaded on demand and cached per model. */
 export interface RowCounts {
   counts: Map<string, number> | null;
   loading: boolean;
@@ -125,7 +125,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
     setNonce((n) => n + 1);
   }, [current.key]);
 
-  // Row counts: on demand (the Size lens or a Weigh button), cached per model.
+  // Row counts: on demand (Count all rows), cached per model.
   const rowCache = useRef(new Map<string, Map<string, number>>());
   const [rowState, setRowState] = useState<Record<string, { loading: boolean; error: RowCounts['error'] } | undefined>>({});
   const loadedMeta = metadata.data && metadata.data.modelLabel === current.label ? metadata.data : undefined;
