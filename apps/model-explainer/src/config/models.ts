@@ -4,9 +4,15 @@
  * To add a model (up to 3): run `npx rayfin connector add` for a fabric-semanticmodel connector, then add ONE line
  * here with its rayfin.yml name and the label people see in the model picker. The connectors service, its configs and
  * runtimes are derived from this map (see src/config/fabric.ts).
+ *
+ * Labels can come from the build environment so a real model's name stays out of the repo: set VITE_MODEL_LABEL in
+ * apps/model-explainer/.env.fabric.local (git-ignored). This file is also loaded in Node by tools/seed-fabric.mjs,
+ * where import.meta.env does not exist, hence the guarded read.
  */
+const env = (import.meta as { env?: Record<string, string | undefined> }).env ?? {};
+
 export const MODEL_LABELS = {
-  retail: 'X10 Retail Demo Model',
+  retail: env.VITE_MODEL_LABEL?.trim() || 'Semantic model',
 } as const satisfies Record<string, string>;
 
 export type ModelKey = keyof typeof MODEL_LABELS;
